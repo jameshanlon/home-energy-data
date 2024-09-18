@@ -1,2 +1,3 @@
 tabulate
 rich
+jinja2
