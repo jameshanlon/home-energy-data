@@ -17,7 +17,7 @@ run:
 	)
 
 serve:
-	. venv/bin/activate && python -m http.server
+	. venv/bin/activate && python -m http.server -d ${OUTPUT_DIR}
 
 clean:
 	rm -rfv venv
