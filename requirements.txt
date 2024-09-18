@@ -1,3 +1,4 @@
-tabulate
-rich
 jinja2
+pre-commit
+rich
+tabulate
