@@ -11,26 +11,20 @@
     type: 'line',
     data: {
       labels: [
-          {% for record in dataset.records %}
-          "{{record.date.strftime("%m %Y")}}",
-          {% endfor %}
+          {% for record in dataset.records %}"{{record.date.strftime("%m %Y")}}",{% endfor %}
         ],
       datasets: [
         {
         label: 'Electricity consumed hot water (kWh)',
         data: [
-          {% for record in dataset.records %}
-          {{record.consumed_water_kwh}},
-          {% endfor %}
+          {% for record in dataset.records %}{{record.consumed_water_kwh}},{% endfor %}
         ],
         tension: 0.1,
         },
         {
         label: 'Electricity consumed heating (kWh)',
         data: [
-          {% for record in dataset.records %}
-          {{record.consumed_heating_kwh}},
-          {% endfor %}
+          {% for record in dataset.records %}{{record.consumed_heating_kwh}},{% endfor %}
         ],
         tension: 0.1,
         }
@@ -44,26 +38,20 @@
     type: 'line',
     data: {
       labels: [
-          {% for record in dataset.records %}
-          "{{record.date.strftime("%m %Y")}}",
-          {% endfor %}
+          {% for record in dataset.records %}"{{record.date.strftime("%m %Y")}}",{% endfor %}
         ],
       datasets: [
         {
         label: 'Heat generated hot water (kWh)',
         data: [
-          {% for record in dataset.records %}
-          {{record.generated_water_kwh}},
-          {% endfor %}
+          {% for record in dataset.records %}{{record.generated_water_kwh}},{% endfor %}
         ],
         tension: 0.1,
         },
         {
         label: 'Heat generated heating (kWh)',
         data: [
-          {% for record in dataset.records %}
-          {{record.generated_heating_kwh}},
-          {% endfor %}
+          {% for record in dataset.records %}{{record.generated_heating_kwh}},{% endfor %}
         ],
         tension: 0.1,
         }
