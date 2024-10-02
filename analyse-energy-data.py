@@ -30,6 +30,7 @@ class Record:
         self.EarnedEnvironmentEnergy_DomesticHotWater: float = None
         self.DhwTankTemperature: float = None
         self.OutdoorTemperature: float = None
+        self.ManualModeSetpointHeating: float = None
         self.RoomTemperatureSetpoint: float = None
         self.CurrentRoomTemperature: float = None
 
@@ -50,7 +51,7 @@ class Chart:
         self.series[series_name].append(value)
 
     def get_symbol(self):
-        return self.name.lower().replace(" ", "_")
+        return self.name.lower().replace(" ", "_").replace("(", "_").replace(")", "_")
 
 
 class Dataset:
@@ -156,6 +157,7 @@ def main(args):
             f"data/{year}/zone_0_data_{year}.csv",
             [
                 "DateTime",
+                "ManualModeSetpointHeating",
                 "RoomTemperatureSetpoint",
                 "CurrentRoomTemperature",
             ],
@@ -201,6 +203,54 @@ def main(args):
             chart.add_datapoint(
                 "Heat generated hot water (kWh)", record.HeatGenerated_DomesticHotWater
             )
+    charts.append(chart)
+
+    # Prepare the COP chart data.
+    chart = Chart("COP")
+    chart.add_series("COP heating")
+    chart.add_series("COP hot water")
+    for record in dataset.records.values():
+        if (
+            record.ConsumedElectricalEnergy_Heating != None
+            and record.ConsumedElectricalEnergy_DomesticHotWater != None
+            and record.HeatGenerated_Heating != None
+            and record.HeatGenerated_DomesticHotWater != None
+        ):
+            chart.add_label(record.DateTime.strftime("%m %Y"))
+            cop_heating = (
+                0
+                if record.ConsumedElectricalEnergy_Heating == 0
+                else record.HeatGenerated_Heating
+                / record.ConsumedElectricalEnergy_Heating
+            )
+            cop_water = (
+                0
+                if record.ConsumedElectricalEnergy_DomesticHotWater == 0
+                else record.HeatGenerated_DomesticHotWater
+                / record.ConsumedElectricalEnergy_DomesticHotWater
+            )
+            chart.add_datapoint("COP heating", cop_heating)
+            chart.add_datapoint("COP hot water", cop_water)
+    charts.append(chart)
+
+    # Prepare the DHW chart data.
+    chart = Chart("Hot water temperature (C)")
+    chart.add_series("DHW")
+    for record in dataset.records.values():
+        if record.DhwTankTemperature != None:
+            chart.add_label(record.DateTime.strftime("%m %Y"))
+            chart.add_datapoint("DHW", record.DhwTankTemperature)
+    charts.append(chart)
+
+    # Prepare the internal/external temperature chart.
+    chart = Chart("Ambient temperature")
+    chart.add_series("Internal")
+    chart.add_series("External")
+    for record in dataset.records.values():
+        if record.OutdoorTemperature != None and record.CurrentRoomTemperature != None:
+            chart.add_label(record.DateTime.strftime("%m %Y"))
+            chart.add_datapoint("Internal", record.CurrentRoomTemperature)
+            chart.add_datapoint("External", record.OutdoorTemperature)
     charts.append(chart)
 
     # Output path.
