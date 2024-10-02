@@ -1,63 +1,35 @@
 <div>
-  <canvas id="chart-consumed"></canvas>
-  <canvas id="chart-generated"></canvas>
+  {% for chart in charts %}
+  <h1>{{chart.name}}</h1>
+  <canvas id="chart-{{chart.get_symbol()}}"></canvas>
+  {% endfor %}
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
 <script>
-  const ctx0 = document.getElementById('chart-consumed');
-  new Chart(ctx0, {
+  {% for chart in charts %}
+  const ctx{{chart.get_symbol()}} = document.getElementById('chart-{{chart.get_symbol()}}');
+  new Chart(ctx{{chart.get_symbol()}}, {
     type: 'line',
     data: {
       labels: [
-          {% for record in dataset.records %}"{{record.date.strftime("%m %Y")}}",{% endfor %}
+        {% for x in chart.labels %}"{{x}}",{% endfor %}
         ],
       datasets: [
+        {% for name, series in chart.series.items() %}
         {
-        label: 'Electricity consumed hot water (kWh)',
+          label: '{{name}}',
         data: [
-          {% for record in dataset.records %}{{record.consumed_water_kwh}},{% endfor %}
+          {% for x in series %}{{x}},{% endfor %}
         ],
         tension: 0.1,
         },
-        {
-        label: 'Electricity consumed heating (kWh)',
-        data: [
-          {% for record in dataset.records %}{{record.consumed_heating_kwh}},{% endfor %}
-        ],
-        tension: 0.1,
-        }
+        {% endfor %}
       ]
     },
     options: {
     }
   });
-  const ctx1 = document.getElementById('chart-generated');
-  new Chart(ctx1, {
-    type: 'line',
-    data: {
-      labels: [
-          {% for record in dataset.records %}"{{record.date.strftime("%m %Y")}}",{% endfor %}
-        ],
-      datasets: [
-        {
-        label: 'Heat generated hot water (kWh)',
-        data: [
-          {% for record in dataset.records %}{{record.generated_water_kwh}},{% endfor %}
-        ],
-        tension: 0.1,
-        },
-        {
-        label: 'Heat generated heating (kWh)',
-        data: [
-          {% for record in dataset.records %}{{record.generated_heating_kwh}},{% endfor %}
-        ],
-        tension: 0.1,
-        }
-      ]
-    },
-    options: {
-    }
-  });
+  {% endfor %}
 </script>

@@ -21,7 +21,7 @@ from collections import defaultdict
 
 class Record:
     def __init__(self):
-        # self.DateTime: datetime.datetime = None
+        self.DateTime: datetime.datetime = None
         self.ConsumedElectricalEnergy_Heating: float = None
         self.ConsumedElectricalEnergy_DomesticHotWater: float = None
         self.HeatGenerated_Heating: float = None
@@ -34,11 +34,34 @@ class Record:
         self.CurrentRoomTemperature: float = None
 
 
+class Chart:
+    def __init__(self, name: str):
+        self.name = name
+        self.labels = []
+        self.series = {}
+
+    def add_label(self, label: str):
+        self.labels.append(label)
+
+    def add_series(self, name: str):
+        self.series[name] = []
+
+    def add_datapoint(self, series_name: str, value: float):
+        self.series[series_name].append(value)
+
+    def get_symbol(self):
+        return self.name.lower().replace(" ", "_")
+
+
 class Dataset:
     def __init__(self):
         self.records = defaultdict(Record)
 
     def add(self, date, metric, value):
+        # Set the date.
+        if self.records[date].DateTime == None:
+            self.records[date].DateTime = date
+        # Set the metric.
         attr_name = metric.replace(":", "_")
         assert getattr(self.records[date], attr_name) == None, "overwriting data point"
         setattr(self.records[date], attr_name, value)
@@ -84,10 +107,10 @@ def read_csv(dataset, filename: str, headers: list[str]) -> Dataset:
         logging.info(f"Read {count} rows from {filename}")
 
 
-def generate_html(dataset: Dataset, output_path: Path):
+def generate_html(charts: list[Chart], output_path: Path):
     environment = Environment(loader=FileSystemLoader("templates/"))
     template = environment.get_template("index.html")
-    content = template.render(dataset=dataset)
+    content = template.render(charts=charts)
 
     output_file = output_path / "index.html"
     with open(output_file, mode="w", encoding="utf-8") as f:
@@ -104,13 +127,16 @@ def main(args):
             f"data/{year}/energy_data_{year}_ArothermPlus_21222500100211330001005519N3.csv",
             [
                 "DateTime",
+            ]
+            + [
                 "ConsumedElectricalEnergy:Heating",
                 "ConsumedElectricalEnergy:DomesticHotWater",
                 "HeatGenerated:Heating",
                 "HeatGenerated:DomesticHotWater",
                 "EarnedEnvironmentEnergy:Heating",
                 "EarnedEnvironmentEnergy:DomesticHotWater",
-            ],
+            ]
+            * 5,
         )
         read_csv(
             dataset,
@@ -138,11 +164,51 @@ def main(args):
     if args.dump:
         dataset.dump()
 
-    ## Output path.
-    # output_path = Path(args.output_dir)
-    # output_path.mkdir(exist_ok=True)
+    charts = []
 
-    # generate_html(dataset, output_path)
+    # Prepare consumed chart data.
+    chart = Chart("Heat energy consumed")
+    chart.add_series("Heat consumed heating (kWh)")
+    chart.add_series("Heat consumed hot water (kWh)")
+    for record in dataset.records.values():
+        if (
+            record.ConsumedElectricalEnergy_Heating != None
+            and record.ConsumedElectricalEnergy_DomesticHotWater != None
+        ):
+            chart.add_label(record.DateTime.strftime("%m %Y"))
+            chart.add_datapoint(
+                "Heat consumed heating (kWh)", record.ConsumedElectricalEnergy_Heating
+            )
+            chart.add_datapoint(
+                "Heat consumed hot water (kWh)",
+                record.ConsumedElectricalEnergy_DomesticHotWater,
+            )
+    charts.append(chart)
+
+    # Prepare generated chart data.
+    chart = Chart("Heat energy generated")
+    chart.add_series("Heat generated heating (kWh)")
+    chart.add_series("Heat generated hot water (kWh)")
+    for record in dataset.records.values():
+        if (
+            record.HeatGenerated_Heating != None
+            and record.HeatGenerated_DomesticHotWater != None
+        ):
+            chart.add_label(record.DateTime.strftime("%m %Y"))
+            chart.add_datapoint(
+                "Heat generated heating (kWh)", record.HeatGenerated_Heating
+            )
+            chart.add_datapoint(
+                "Heat generated hot water (kWh)", record.HeatGenerated_DomesticHotWater
+            )
+    charts.append(chart)
+
+    # Output path.
+    output_path = Path(args.output_dir)
+    output_path.mkdir(exist_ok=True)
+
+    # Generate HTML
+    generate_html(charts, output_path)
 
 
 if __name__ == "__main__":
