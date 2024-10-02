@@ -16,24 +16,32 @@ from rich import print
 from dataclasses import dataclass
 from jinja2 import Environment, FileSystemLoader
 from pathlib import Path
+from collections import defaultdict
 
 
-@dataclass
 class Record:
-    date: datetime.datetime
-    consumed_heating_kwh: float
-    consumed_water_kwh: float
-    generated_heating_kwh: float
-    generated_water_kwh: float
+    def __init__(self):
+        # self.DateTime: datetime.datetime = None
+        self.ConsumedElectricalEnergy_Heating: float = None
+        self.ConsumedElectricalEnergy_DomesticHotWater: float = None
+        self.HeatGenerated_Heating: float = None
+        self.HeatGenerated_DomesticHotWater: float = None
+        self.EarnedEnvironmentEnergy_Heating: float = None
+        self.EarnedEnvironmentEnergy_DomesticHotWater: float = None
+        self.DhwTankTemperature: float = None
+        self.OutdoorTemperature: float = None
+        self.RoomTemperatureSetpoint: float = None
+        self.CurrentRoomTemperature: float = None
 
 
 class Dataset:
     def __init__(self):
-        self.records = []
+        self.records = defaultdict(Record)
 
     def add(self, date, metric, value):
-        # self.records.append(record)
-        pass
+        attr_name = metric.replace(":", "_")
+        assert getattr(self.records[date], attr_name) == None, "overwriting data point"
+        setattr(self.records[date], attr_name, value)
 
     def dump(self):
         headers = [
@@ -62,7 +70,7 @@ def read_csv(dataset, filename: str, headers: list[str]) -> Dataset:
     """
     with open(filename, "r") as f:
         contents = csv.reader(f, delimiter=";", quotechar='"')
-        logging.info(f"Reading {sum(1 for row in contents)} rows from {filename}")
+        count = 0
         for row in contents:
             if row[0].startswith("#") or row[0].startswith("DateTime"):
                 continue
@@ -72,6 +80,8 @@ def read_csv(dataset, filename: str, headers: list[str]) -> Dataset:
             for i in range(1, len(headers)):
                 if row[i] != "":
                     dataset.add(date, headers[i], float(row[i]))
+            count += 1
+        logging.info(f"Read {count} rows from {filename}")
 
 
 def generate_html(dataset: Dataset, output_path: Path):
@@ -128,11 +138,11 @@ def main(args):
     if args.dump:
         dataset.dump()
 
-    # Output path.
-    output_path = Path(args.output_dir)
-    output_path.mkdir(exist_ok=True)
+    ## Output path.
+    # output_path = Path(args.output_dir)
+    # output_path.mkdir(exist_ok=True)
 
-    generate_html(dataset, output_path)
+    # generate_html(dataset, output_path)
 
 
 if __name__ == "__main__":
