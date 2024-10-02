@@ -54,6 +54,12 @@ class Chart:
         return self.name.lower().replace(" ", "_").replace("(", "_").replace(")", "_")
 
 
+@dataclass
+class Stats:
+    annual_cop_2023: float
+    annual_cop_2024: float
+
+
 class Dataset:
     def __init__(self):
         self.records = defaultdict(Record)
@@ -68,24 +74,22 @@ class Dataset:
         setattr(self.records[date], attr_name, value)
 
     def dump(self):
-        headers = [
-            "Date",
-            "Electricity consumed heating (kWh)",
-            "Electricity consumed hot water (kWh)",
-            "Heat generated heating (kWh)",
-            "Heat generated hot water (kWh)",
+        metrics = [
+            "DateTime",
+            "ConsumedElectricalEnergy_Heating",
+            "ConsumedElectricalEnergy_DomesticHotWater",
+            "HeatGenerated_Heating",
+            "HeatGenerated_DomesticHotWater",
+            "EarnedEnvironmentEnergy_Heating",
+            "EarnedEnvironmentEnergy_DomesticHotWater",
+            "DhwTankTemperature",
+            "OutdoorTemperature",
+            "ManualModeSetpointHeating",
+            "RoomTemperatureSetpoint",
+            "CurrentRoomTemperature",
         ]
-        table = [
-            [
-                r.date,
-                r.consumed_heating_kwh,
-                r.consumed_water_kwh,
-                r.generated_heating_kwh,
-                r.generated_water_kwh,
-            ]
-            for r in self.records
-        ]
-        print(tabulate(table, headers, tablefmt="simple_outline"))
+        table = [[getattr(r, x) for x in metrics] for r in self.records.values()]
+        print(tabulate(table, metrics, tablefmt="simple_outline"))
 
 
 def read_csv(dataset, filename: str, headers: list[str]) -> Dataset:
@@ -165,6 +169,7 @@ def main(args):
 
     if args.dump:
         dataset.dump()
+        return
 
     charts = []
 
@@ -263,7 +268,11 @@ def main(args):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("--dump", help="Dump the contents of the CSV file in a table")
+    parser.add_argument(
+        "--dump",
+        action="store_true",
+        help="Dump the contents of the CSV file in a table",
+    )
     parser.add_argument(
         "-v", "--verbose", action="count", default=0, help="Verbosity (-v, -vv, etc)"
     )
