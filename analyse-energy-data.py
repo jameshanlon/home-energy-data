@@ -28,12 +28,12 @@ class Record:
 
 
 class Dataset:
-
     def __init__(self):
         self.records = []
 
-    def add(self, record: Record):
-        self.records.append(record)
+    def add(self, date, metric, value):
+        # self.records.append(record)
+        pass
 
     def dump(self):
         headers = [
@@ -56,40 +56,22 @@ class Dataset:
         print(tabulate(table, headers, tablefmt="simple_outline"))
 
 
-def read_csv(filename: str) -> Dataset:
-    dataset = Dataset()
+def read_csv(dataset, filename: str, headers: list[str]) -> Dataset:
+    """
+    Read a CSV file with the specified columns.
+    """
     with open(filename, "r") as f:
-        contents = csv.reader(f, delimiter=",", quotechar='"')
+        contents = csv.reader(f, delimiter=";", quotechar='"')
+        logging.info(f"Reading {sum(1 for row in contents)} rows from {filename}")
         for row in contents:
-            # DateTime,
-            # Date,
-            # EarnedEnvironmentEnergy:Heating,
-            # EarnedEnvironmentEnergy:DomesticHotWater,
-            # ConsumedElectricalEnergy:Heating,
-            # ConsumedElectricalEnergy:DomesticHotWater,
-            # HeatGenerated:Heating,
-            # HeatGenerated:DomesticHotWater,
-            # COP,
-            # COP (sanitised)
-            if row[0].startswith("#"):
+            if row[0].startswith("#") or row[0].startswith("DateTime"):
                 continue
-            if row[1] == "":
-                continue
-            date = datetime.datetime.strptime(row[1], "%Y-%m-%d")
-            consumed_heating_kwh = float(row[4])
-            consumed_water_kwh = float(row[5])
-            generated_heating_kwh = float(row[6])
-            generated_water_kwh = float(row[7])
-            dataset.add(
-                Record(
-                    date,
-                    consumed_heating_kwh,
-                    consumed_water_kwh,
-                    generated_heating_kwh,
-                    generated_water_kwh,
-                )
-            )
-    return dataset
+            # Date
+            date = datetime.datetime.strptime(row[0], "%Y-%m-%d %H:%M:%S")
+            # Values
+            for i in range(1, len(headers)):
+                if row[i] != "":
+                    dataset.add(date, headers[i], float(row[i]))
 
 
 def generate_html(dataset: Dataset, output_path: Path):
@@ -104,7 +86,44 @@ def generate_html(dataset: Dataset, output_path: Path):
 
 
 def main(args):
-    dataset = read_csv(args.file)
+    dataset = Dataset()
+
+    for year in [2023, 2024]:
+        read_csv(
+            dataset,
+            f"data/{year}/energy_data_{year}_ArothermPlus_21222500100211330001005519N3.csv",
+            [
+                "DateTime",
+                "ConsumedElectricalEnergy:Heating",
+                "ConsumedElectricalEnergy:DomesticHotWater",
+                "HeatGenerated:Heating",
+                "HeatGenerated:DomesticHotWater",
+                "EarnedEnvironmentEnergy:Heating",
+                "EarnedEnvironmentEnergy:DomesticHotWater",
+            ],
+        )
+        read_csv(
+            dataset,
+            f"data/{year}/domestic_hot_water_255_data_{year}.csv",
+            [
+                "DateTime",
+                "DhwTankTemperature",
+            ],
+        )
+        read_csv(
+            dataset,
+            f"data/{year}/system_data_{year}.csv",
+            ["DateTime", "OutdoorTemperature"],
+        )
+        read_csv(
+            dataset,
+            f"data/{year}/zone_0_data_{year}.csv",
+            [
+                "DateTime",
+                "RoomTemperatureSetpoint",
+                "CurrentRoomTemperature",
+            ],
+        )
 
     if args.dump:
         dataset.dump()
@@ -118,7 +137,6 @@ def main(args):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("file", help="CSV file")
     parser.add_argument("--dump", help="Dump the contents of the CSV file in a table")
     parser.add_argument(
         "-v", "--verbose", action="count", default=0, help="Verbosity (-v, -vv, etc)"
