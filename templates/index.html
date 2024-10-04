@@ -1,5 +1,44 @@
+{% for stats in annual_stats %}
+<h1>{{stats.year}}</h1>
 <table>
+  <tr>
+  <td>annual_heating_consumed</td>
+  <td>{{stats.annual_heating_consumed}}</td>
+  </tr>
+  <tr>
+  <td>annual_water_consumed</td>
+  <td>{{stats.annual_water_consumed}}</td>
+  </tr>
+  <tr>
+  <td>annual_total_consumed</td>
+  <td>{{stats.annual_total_consumed}}</td>
+  </tr>
+  <tr>
+  <td>annual_heating_generated</td>
+  <td>{{stats.annual_heating_generated}}</td>
+  </tr>
+  <tr>
+  <td>annual_water_generated</td>
+  <td>{{stats.annual_water_generated}}</td>
+  </tr>
+  <tr>
+  <td>annual_total_generated</td>
+  <td>{{stats.annual_total_generated}}</td>
+  </tr>
+  <tr>
+  <td>heating SCOP</td>
+  <td>{{stats.heating_scop}}</td>
+  </tr>
+  <tr>
+  <td>DHW SCOP</td>
+  <td>{{stats.water_scop}}</td>
+  </tr>
+  <tr>
+  <td>Total SCOP</td>
+  <td>{{stats.scop}}</td>
+  </tr>
 </table>
+{% endfor %}
 
 <div>
   {% for chart in charts %}

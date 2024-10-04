@@ -126,7 +126,7 @@ def read_csv(dataset, filename: str, headers: list[str]) -> Dataset:
 def generate_html(charts: list[Chart], annual_stats: list[Stats], output_path: Path):
     environment = Environment(loader=FileSystemLoader("templates/"))
     template = environment.get_template("index.html")
-    content = template.render(charts=charts)
+    content = template.render(charts=charts, annual_stats=annual_stats)
 
     output_file = output_path / "index.html"
     with open(output_file, mode="w", encoding="utf-8") as f:
@@ -269,7 +269,20 @@ def main(args):
             chart.add_datapoint("External", record.OutdoorTemperature)
     charts.append(chart)
 
-    # TODO: heat output vs COP
+    # Prepare chart of heat output vs COP
+    chart = Chart("Heat output vs COP")
+    chart.add_series("Heat output (heating) vs COP")
+    for record in dataset.records.values():
+        if record.HeatGenerated_Heating != None:
+            cop_heating = (
+                0
+                if record.ConsumedElectricalEnergy_Heating == 0
+                else record.HeatGenerated_Heating
+                / record.ConsumedElectricalEnergy_Heating
+            )
+            chart.add_label(record.HeatGenerated_Heating)
+            chart.add_datapoint("Heat output (heating) vs COP", cop_heating)
+    charts.append(chart)
 
     # Prepare stats.
     annual_stats = []
