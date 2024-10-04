@@ -17,7 +17,7 @@ from dataclasses import dataclass
 from jinja2 import Environment, FileSystemLoader
 from pathlib import Path
 from collections import defaultdict
-from typing import Iterator
+from typing import Iterator, TypeAlias
 
 
 class Record:
@@ -36,7 +36,7 @@ class Record:
         self.CurrentRoomTemperature: float = None
 
 
-class Chart:
+class LineChart:
     def __init__(self, name: str):
         self.name = name
         self.labels = []
@@ -53,6 +53,24 @@ class Chart:
 
     def get_symbol(self):
         return self.name.lower().replace(" ", "_").replace("(", "_").replace(")", "_")
+
+
+class ScatterChart:
+    def __init__(self, name: str):
+        self.name = name
+        self.series = {}
+
+    def add_series(self, name: str):
+        self.series[name] = []
+
+    def add_datapoint(self, series_name: str, value: float):
+        self.series[series_name].append(value)
+
+    def get_symbol(self):
+        return self.name.lower().replace(" ", "_").replace("(", "_").replace(")", "_")
+
+
+Chart: TypeAlias = LineChart | ScatterChart
 
 
 class Stats:
@@ -185,7 +203,7 @@ def main(args):
     charts = []
 
     # Prepare consumed chart data.
-    chart = Chart("Heat energy consumed")
+    chart = LineChart("Heat energy consumed")
     chart.add_series("Heat consumed heating (kWh)")
     chart.add_series("Heat consumed hot water (kWh)")
     for record in dataset.records.values():
@@ -204,7 +222,7 @@ def main(args):
     charts.append(chart)
 
     # Prepare generated chart data.
-    chart = Chart("Heat energy generated")
+    chart = LineChart("Heat energy generated")
     chart.add_series("Heat generated heating (kWh)")
     chart.add_series("Heat generated hot water (kWh)")
     for record in dataset.records.values():
@@ -222,7 +240,7 @@ def main(args):
     charts.append(chart)
 
     # Prepare the COP chart data.
-    chart = Chart("COP")
+    chart = LineChart("COP")
     chart.add_series("COP heating")
     chart.add_series("COP hot water")
     for record in dataset.records.values():
@@ -250,7 +268,7 @@ def main(args):
     charts.append(chart)
 
     # Prepare the DHW chart data.
-    chart = Chart("Hot water temperature (C)")
+    chart = LineChart("Hot water temperature (C)")
     chart.add_series("DHW")
     for record in dataset.records.values():
         if record.DhwTankTemperature != None:
@@ -259,7 +277,7 @@ def main(args):
     charts.append(chart)
 
     # Prepare the internal/external temperature chart.
-    chart = Chart("Ambient temperature")
+    chart = LineChart("Ambient temperature")
     chart.add_series("Internal")
     chart.add_series("External")
     for record in dataset.records.values():
@@ -270,19 +288,29 @@ def main(args):
     charts.append(chart)
 
     # Prepare chart of heat output vs COP
-    chart = Chart("Heat output vs COP")
-    chart.add_series("Heat output (heating) vs COP")
-    for record in dataset.records.values():
-        if record.HeatGenerated_Heating != None:
-            cop_heating = (
-                0
-                if record.ConsumedElectricalEnergy_Heating == 0
-                else record.HeatGenerated_Heating
-                / record.ConsumedElectricalEnergy_Heating
-            )
-            chart.add_label(record.HeatGenerated_Heating)
-            chart.add_datapoint("Heat output (heating) vs COP", cop_heating)
-    charts.append(chart)
+    # chart = ScatterChart("Heat output vs COP")
+    # chart.add_series("Heat output (heating) vs COP")
+    # chart.add_series("Heat output (DHW) vs COP")
+    # for record in dataset.records.values():
+    #    if record.HeatGenerated_Heating != None:
+    #        cop_heating = (
+    #            0
+    #            if record.ConsumedElectricalEnergy_Heating == 0
+    #            else record.HeatGenerated_Heating
+    #            / record.ConsumedElectricalEnergy_Heating
+    #        )
+    #        cop_water = (
+    #            0
+    #            if record.ConsumedElectricalEnergy_DomesticHotWater == 0
+    #            else record.HeatGenerated_DomesticHotWater
+    #            / record.ConsumedElectricalEnergy_DomesticHotWater
+    #        )
+    #        chart.add_label(record.HeatGenerated_Heating)
+    #        chart.add_datapoint("Heat output (heating) vs COP", (cop_heating,
+    #                                                             record.HeatGenerated_Heating))
+    #        chart.add_datapoint("Heat output (DHW) vs COP", (cop_water,
+    #                                                         record.HeatGenerated_DomesticHotWater))
+    # charts.append(chart)
 
     # Prepare stats.
     annual_stats = []
