@@ -3,27 +3,27 @@
 <table>
   <tr>
   <td>annual_heating_consumed</td>
-  <td>{{stats.annual_heating_consumed}}</td>
+  <td>{{stats.annual_heating_consumed | format_kwh}}</td>
   </tr>
   <tr>
   <td>annual_water_consumed</td>
-  <td>{{stats.annual_water_consumed}}</td>
+  <td>{{stats.annual_water_consumed | format_kwh}}</td>
   </tr>
   <tr>
   <td>annual_total_consumed</td>
-  <td>{{stats.annual_total_consumed}}</td>
+  <td>{{stats.annual_total_consumed | format_kwh}}</td>
   </tr>
   <tr>
   <td>annual_heating_generated</td>
-  <td>{{stats.annual_heating_generated}}</td>
+  <td>{{stats.annual_heating_generated | format_kwh}}</td>
   </tr>
   <tr>
   <td>annual_water_generated</td>
-  <td>{{stats.annual_water_generated}}</td>
+  <td>{{stats.annual_water_generated | format_kwh}}</td>
   </tr>
   <tr>
   <td>annual_total_generated</td>
-  <td>{{stats.annual_total_generated}}</td>
+  <td>{{stats.annual_total_generated | format_kwh}}</td>
   </tr>
   <tr>
   <td>heating SCOP</td>
@@ -53,6 +53,7 @@
   {% for chart in charts %}
   const ctx{{chart.get_symbol()}} = document.getElementById('chart-{{chart.get_symbol()}}');
   new Chart(ctx{{chart.get_symbol()}}, {
+    {% if chart.is_type(ChartType.LINE) %}
     type: 'line',
     data: {
       labels: [
@@ -74,6 +75,32 @@
       pointStyle: false,
       borderWidth: 1,
     }
+    {% endif %}
+    {% if chart.is_type(ChartType.SCATTER) %}
+    type: 'scatter',
+    data: {
+      datasets: [
+        {% for name, series in chart.series.items() %}
+        {
+          label: '{{name}}',
+          data: [
+            {% for x, y in series %}
+            {x: {{x}}, y: {{y}}},
+            {% endfor %}
+          ],
+        },
+        {% endfor %}
+      ],
+    },
+    options: {
+      scales: {
+        x: {
+          type: 'linear',
+          position: 'bottom',
+        }
+      }
+    }
+    {% endif %}
   });
   {% endfor %}
 </script>

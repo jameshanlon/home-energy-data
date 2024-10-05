@@ -18,6 +18,7 @@ from jinja2 import Environment, FileSystemLoader
 from pathlib import Path
 from collections import defaultdict
 from typing import Iterator, TypeAlias
+from enum import Enum, auto
 
 
 class Record:
@@ -36,11 +37,20 @@ class Record:
         self.CurrentRoomTemperature: float = None
 
 
+class ChartType(Enum):
+    LINE = auto()
+    SCATTER = auto()
+
+
 class LineChart:
     def __init__(self, name: str):
         self.name = name
         self.labels = []
         self.series = {}
+
+    @staticmethod
+    def is_type(chart_type: ChartType):
+        return chart_type == ChartType.LINE
 
     def add_label(self, label: str):
         self.labels.append(label)
@@ -60,10 +70,14 @@ class ScatterChart:
         self.name = name
         self.series = {}
 
+    @staticmethod
+    def is_type(chart_type: ChartType):
+        return chart_type == ChartType.SCATTER
+
     def add_series(self, name: str):
         self.series[name] = []
 
-    def add_datapoint(self, series_name: str, value: float):
+    def add_datapoint(self, series_name: str, value: tuple[float, float]):
         self.series[series_name].append(value)
 
     def get_symbol(self):
@@ -121,6 +135,22 @@ class Dataset:
         print(tabulate(table, metrics, tablefmt="simple_outline"))
 
 
+def format_kwh(kwh: float) -> str:
+    kwh *= 1000
+
+    # Define the SI units and their corresponding power of 10 values
+    units = [(1e9, "GWh"), (1e6, "MWh"), (1e3, "kWh"), (1, "Wh")]
+
+    # Loop through the units and find the appropriate one
+    for factor, unit in units:
+        if kwh >= factor:
+            value = kwh / factor
+            return f"{value:.2f} {unit}"
+
+    # If the kWh is too small, just return it in Wh
+    return f"{kwh * 1000:.2f} Wh"
+
+
 def read_csv(dataset, filename: str, headers: list[str]) -> Dataset:
     """
     Read a CSV file with the specified columns.
@@ -143,8 +173,11 @@ def read_csv(dataset, filename: str, headers: list[str]) -> Dataset:
 
 def generate_html(charts: list[Chart], annual_stats: list[Stats], output_path: Path):
     environment = Environment(loader=FileSystemLoader("templates/"))
+    environment.filters["format_kwh"] = format_kwh
     template = environment.get_template("index.html")
-    content = template.render(charts=charts, annual_stats=annual_stats)
+    content = template.render(
+        charts=charts, annual_stats=annual_stats, ChartType=ChartType
+    )
 
     output_file = output_path / "index.html"
     with open(output_file, mode="w", encoding="utf-8") as f:
@@ -288,34 +321,45 @@ def main(args):
     charts.append(chart)
 
     # Prepare chart of heat output vs COP
-    # chart = ScatterChart("Heat output vs COP")
-    # chart.add_series("Heat output (heating) vs COP")
-    # chart.add_series("Heat output (DHW) vs COP")
-    # for record in dataset.records.values():
-    #    if record.HeatGenerated_Heating != None:
-    #        cop_heating = (
-    #            0
-    #            if record.ConsumedElectricalEnergy_Heating == 0
-    #            else record.HeatGenerated_Heating
-    #            / record.ConsumedElectricalEnergy_Heating
-    #        )
-    #        cop_water = (
-    #            0
-    #            if record.ConsumedElectricalEnergy_DomesticHotWater == 0
-    #            else record.HeatGenerated_DomesticHotWater
-    #            / record.ConsumedElectricalEnergy_DomesticHotWater
-    #        )
-    #        chart.add_label(record.HeatGenerated_Heating)
-    #        chart.add_datapoint("Heat output (heating) vs COP", (cop_heating,
-    #                                                             record.HeatGenerated_Heating))
-    #        chart.add_datapoint("Heat output (DHW) vs COP", (cop_water,
-    #                                                         record.HeatGenerated_DomesticHotWater))
-    # charts.append(chart)
+    # TODO: plot against combined COP averaged weekly.
+    chart = ScatterChart("Heat output vs COP")
+    chart.add_series("Heat output (heating) vs COP")
+    chart.add_series("Heat output (DHW) vs COP")
+    for record in dataset.records.values():
+        if (
+            record.HeatGenerated_Heating != None
+            and record.HeatGenerated_DomesticHotWater != None
+        ):
+            cop_heating = (
+                0
+                if record.ConsumedElectricalEnergy_Heating == 0
+                else record.HeatGenerated_Heating
+                / record.ConsumedElectricalEnergy_Heating
+            )
+            cop_water = (
+                0
+                if record.ConsumedElectricalEnergy_DomesticHotWater == 0
+                else record.HeatGenerated_DomesticHotWater
+                / record.ConsumedElectricalEnergy_DomesticHotWater
+            )
+            if cop_heating > 5 or cop_water > 5:
+                # Erronious data points.
+                continue
+            chart.add_datapoint(
+                "Heat output (heating) vs COP",
+                (record.HeatGenerated_Heating, cop_heating),
+            )
+            chart.add_datapoint(
+                "Heat output (DHW) vs COP",
+                (record.HeatGenerated_DomesticHotWater, cop_water),
+            )
+    charts.append(chart)
 
     # Prepare stats.
     annual_stats = []
     for year in [2023, 2024]:
         s = Stats(year)
+        # TODO: number of recorded days
         s.annual_heating_consumed = dataset.total(
             year, "ConsumedElectricalEnergy_Heating"
         )
