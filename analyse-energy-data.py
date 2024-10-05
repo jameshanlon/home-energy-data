@@ -377,8 +377,8 @@ def main(args):
         )
         s.annual_total_consumed = s.annual_heating_consumed + s.annual_water_consumed
         s.annual_heating_generated = dataset.total(year, "HeatGenerated_Heating")
-        s.annual_water_generated = dataset.total(year, "HeatGenerated_Heating")
-        s.annual_total_generated = s.annual_heating_consumed + s.annual_water_consumed
+        s.annual_water_generated = dataset.total(year, "HeatGenerated_DomesticHotWater")
+        s.annual_total_generated = s.annual_heating_generated + s.annual_water_generated
         s.heating_scop = s.annual_heating_generated / s.annual_heating_consumed
         s.water_scop = s.annual_water_generated / s.annual_water_consumed
         s.scop = (s.annual_heating_generated + s.annual_water_generated) / (
