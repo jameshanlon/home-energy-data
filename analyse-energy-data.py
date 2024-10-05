@@ -1,6 +1,9 @@
 #!/usr/bin/env python3
 """
 Analyse Vaillant energy data and produce some graphs.
+
+Inspired partly by
+https://protonsforbreakfast.wordpress.com/2024/08/21/2024-summer-summary/
 """
 
 __author__ = "James Hanlon"
@@ -276,6 +279,7 @@ def main(args):
     chart = LineChart("COP")
     chart.add_series("COP heating")
     chart.add_series("COP hot water")
+    chart.add_series("COP combined")
     for record in dataset.records.values():
         if (
             record.ConsumedElectricalEnergy_Heating != None
@@ -283,7 +287,6 @@ def main(args):
             and record.HeatGenerated_Heating != None
             and record.HeatGenerated_DomesticHotWater != None
         ):
-            chart.add_label(record.DateTime.strftime("%m %Y"))
             cop_heating = (
                 0
                 if record.ConsumedElectricalEnergy_Heating == 0
@@ -296,8 +299,23 @@ def main(args):
                 else record.HeatGenerated_DomesticHotWater
                 / record.ConsumedElectricalEnergy_DomesticHotWater
             )
+            total_consumed = (
+                record.ConsumedElectricalEnergy_Heating
+                + record.ConsumedElectricalEnergy_DomesticHotWater
+            )
+            total_generated = (
+                record.HeatGenerated_Heating + record.HeatGenerated_DomesticHotWater
+            )
+            cop_combined = (
+                0 if total_consumed == 0 else total_generated / total_consumed
+            )
+            if cop_heating > 6 or cop_water > 6:
+                # Erronious data point.
+                continue
+            chart.add_label(record.DateTime.strftime("%m %Y"))
             chart.add_datapoint("COP heating", cop_heating)
             chart.add_datapoint("COP hot water", cop_water)
+            chart.add_datapoint("COP combined", cop_combined)
     charts.append(chart)
 
     # Prepare the DHW chart data.
@@ -323,35 +341,26 @@ def main(args):
     # Prepare chart of heat output vs COP
     # TODO: plot against combined COP averaged weekly.
     chart = ScatterChart("Heat output vs COP")
-    chart.add_series("Heat output (heating) vs COP")
-    chart.add_series("Heat output (DHW) vs COP")
+    chart.add_series("Heat output vs COP")
     for record in dataset.records.values():
         if (
             record.HeatGenerated_Heating != None
             and record.HeatGenerated_DomesticHotWater != None
         ):
-            cop_heating = (
-                0
-                if record.ConsumedElectricalEnergy_Heating == 0
-                else record.HeatGenerated_Heating
-                / record.ConsumedElectricalEnergy_Heating
+            total_consumed = (
+                record.ConsumedElectricalEnergy_Heating
+                + record.ConsumedElectricalEnergy_DomesticHotWater
             )
-            cop_water = (
-                0
-                if record.ConsumedElectricalEnergy_DomesticHotWater == 0
-                else record.HeatGenerated_DomesticHotWater
-                / record.ConsumedElectricalEnergy_DomesticHotWater
+            total_generated = (
+                record.HeatGenerated_Heating + record.HeatGenerated_DomesticHotWater
             )
-            if cop_heating > 5 or cop_water > 5:
+            cop = 0 if total_consumed == 0 else total_generated / total_consumed
+            if cop > 5:
                 # Erronious data points.
                 continue
             chart.add_datapoint(
-                "Heat output (heating) vs COP",
-                (record.HeatGenerated_Heating, cop_heating),
-            )
-            chart.add_datapoint(
-                "Heat output (DHW) vs COP",
-                (record.HeatGenerated_DomesticHotWater, cop_water),
+                "Heat output vs COP",
+                (total_generated, cop),
             )
     charts.append(chart)
 
