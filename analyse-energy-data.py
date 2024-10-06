@@ -4,6 +4,10 @@ Analyse Vaillant energy data and produce some graphs.
 
 Inspired partly by
 https://protonsforbreakfast.wordpress.com/2024/08/21/2024-summer-summary/
+
+TODO:
+    - Add a scaling factor on consumed Wh to model possible Vaillant
+      inaccuracy.
 """
 
 __author__ = "James Hanlon"
@@ -243,16 +247,22 @@ def main(args):
     chart = LineChart("Energy consumed")
     chart.add_series("Heating (Wh)")
     chart.add_series("Hot water (Wh)")
+    chart.add_series("Total (Wh)")
     for record in dataset.records.values():
         if (
             record.ConsumedElectricalEnergy_Heating != None
             and record.ConsumedElectricalEnergy_DomesticHotWater != None
         ):
-            chart.add_label(record.DateTime.strftime("%m %Y"))
+            chart.add_label(record.DateTime.strftime("%d %m %Y"))
             chart.add_datapoint("Heating (Wh)", record.ConsumedElectricalEnergy_Heating)
             chart.add_datapoint(
                 "Hot water (Wh)",
                 record.ConsumedElectricalEnergy_DomesticHotWater,
+            )
+            chart.add_datapoint(
+                "Total (Wh)",
+                record.ConsumedElectricalEnergy_Heating
+                + record.ConsumedElectricalEnergy_DomesticHotWater,
             )
     charts.append(chart)
 
@@ -265,7 +275,7 @@ def main(args):
             record.HeatGenerated_Heating != None
             and record.HeatGenerated_DomesticHotWater != None
         ):
-            chart.add_label(record.DateTime.strftime("%m %Y"))
+            chart.add_label(record.DateTime.strftime("%d %m %Y"))
             chart.add_datapoint(
                 "Heat generated heating (Wh)", record.HeatGenerated_Heating
             )
@@ -338,7 +348,7 @@ def main(args):
             if cop_heating > 6 or cop_water > 6:
                 # Erronious data point.
                 continue
-            chart.add_label(record.DateTime.strftime("%m %Y"))
+            chart.add_label(record.DateTime.strftime("%d %m %Y"))
             chart.add_datapoint("COP heating", cop_heating)
             chart.add_datapoint("COP hot water", cop_water)
     charts.append(chart)
@@ -348,7 +358,7 @@ def main(args):
     chart.add_series("DHW")
     for record in dataset.records.values():
         if record.DhwTankTemperature != None:
-            chart.add_label(record.DateTime.strftime("%m %Y"))
+            chart.add_label(record.DateTime.strftime("%d %m %Y"))
             chart.add_datapoint("DHW", record.DhwTankTemperature)
     charts.append(chart)
 
@@ -358,7 +368,7 @@ def main(args):
     chart.add_series("External")
     for record in dataset.records.values():
         if record.OutdoorTemperature != None and record.CurrentRoomTemperature != None:
-            chart.add_label(record.DateTime.strftime("%m %Y"))
+            chart.add_label(record.DateTime.strftime("%d %m %Y"))
             chart.add_datapoint("Internal", record.CurrentRoomTemperature)
             chart.add_datapoint("External", record.OutdoorTemperature)
     charts.append(chart)
