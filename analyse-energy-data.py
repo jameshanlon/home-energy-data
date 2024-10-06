@@ -3,11 +3,7 @@
 Analyse Vaillant energy data and produce some graphs.
 
 Inspired partly by
-https://protonsforbreakfast.wordpress.com/2024/08/21/2024-summer-summary/
-
-TODO:
-    - Add a scaling factor on consumed Wh to model possible Vaillant
-      inaccuracy.
+  https://protonsforbreakfast.wordpress.com/2024/08/21/2024-summer-summary/
 """
 
 __author__ = "James Hanlon"
@@ -237,6 +233,13 @@ def main(args):
             ],
         )
 
+    # Scale the consumed Wh values.
+    for record in dataset.records.values():
+        if record.ConsumedElectricalEnergy_Heating:
+            record.ConsumedElectricalEnergy_Heating *= args.scale_consumed
+        if record.ConsumedElectricalEnergy_DomesticHotWater:
+            record.ConsumedElectricalEnergy_DomesticHotWater *= args.scale_consumed
+
     if args.dump:
         dataset.dump()
         return
@@ -408,6 +411,7 @@ def main(args):
     annual_stats = []
     for year in [2023, 2024]:
         s = Stats(year)
+        s.scale_consumed = args.scale_consumed
 
         # Calculate the number of days in the dataset.
         dates = [x.DateTime for x in dataset.iter_year(year)]
@@ -459,6 +463,11 @@ if __name__ == "__main__":
         "--output-dir",
         default="output",
         help="Specify an output directory (default: 'output')",
+    )
+    parser.add_argument(
+        "--scale-consumed",
+        type=float,
+        help="Scale consumed electicity in Wh values, default=1.0",
     )
     parser.add_argument("--debug", action="store_true", help="Print debugging messages")
     args = parser.parse_args()
