@@ -275,11 +275,37 @@ def main(args):
             )
     charts.append(chart)
 
+    # Prepare averaged combined COP per week.
+    weekly_cop = [0] * 52
+    for record in dataset.records.values():
+        if (
+            record.ConsumedElectricalEnergy_Heating != None
+            and record.ConsumedElectricalEnergy_DomesticHotWater != None
+            and record.HeatGenerated_Heating != None
+            and record.HeatGenerated_DomesticHotWater != None
+        ):
+            total_consumed = (
+                record.ConsumedElectricalEnergy_Heating
+                + record.ConsumedElectricalEnergy_DomesticHotWater
+            )
+            total_generated = (
+                record.HeatGenerated_Heating + record.HeatGenerated_DomesticHotWater
+            )
+            cop_combined = (
+                0 if total_consumed == 0 else total_generated / total_consumed
+            )
+            if cop_combined > 6:
+                # Erronious data point.
+                continue
+            weekly_cop[record.DateTime.isocalendar().week] += cop_combined
+    # Divide sums through for average.
+    weekly_cop = [x / 7 for x in weekly_cop]
+
     # Prepare the COP chart data.
     chart = LineChart("COP")
     chart.add_series("COP heating")
     chart.add_series("COP hot water")
-    chart.add_series("COP combined")
+    chart.add_series("COP combined weekly")
     for record in dataset.records.values():
         if (
             record.ConsumedElectricalEnergy_Heating != None
@@ -299,23 +325,15 @@ def main(args):
                 else record.HeatGenerated_DomesticHotWater
                 / record.ConsumedElectricalEnergy_DomesticHotWater
             )
-            total_consumed = (
-                record.ConsumedElectricalEnergy_Heating
-                + record.ConsumedElectricalEnergy_DomesticHotWater
-            )
-            total_generated = (
-                record.HeatGenerated_Heating + record.HeatGenerated_DomesticHotWater
-            )
-            cop_combined = (
-                0 if total_consumed == 0 else total_generated / total_consumed
-            )
             if cop_heating > 6 or cop_water > 6:
                 # Erronious data point.
                 continue
             chart.add_label(record.DateTime.strftime("%m %Y"))
             chart.add_datapoint("COP heating", cop_heating)
             chart.add_datapoint("COP hot water", cop_water)
-            chart.add_datapoint("COP combined", cop_combined)
+            chart.add_datapoint(
+                "COP combined weekly", weekly_cop[record.DateTime.isocalendar().week]
+            )
     charts.append(chart)
 
     # Prepare the DHW chart data.
@@ -339,27 +357,19 @@ def main(args):
     charts.append(chart)
 
     # Prepare chart of heat output vs COP
-    # TODO: plot against combined COP averaged weekly.
-    chart = ScatterChart("Heat output vs COP")
-    chart.add_series("Heat output vs COP")
+    chart = ScatterChart("Heat output vs weekly COP")
+    chart.add_series("Heat output vs weekly COP")
     for record in dataset.records.values():
         if (
             record.HeatGenerated_Heating != None
             and record.HeatGenerated_DomesticHotWater != None
         ):
-            total_consumed = (
-                record.ConsumedElectricalEnergy_Heating
-                + record.ConsumedElectricalEnergy_DomesticHotWater
-            )
             total_generated = (
                 record.HeatGenerated_Heating + record.HeatGenerated_DomesticHotWater
             )
-            cop = 0 if total_consumed == 0 else total_generated / total_consumed
-            if cop > 5:
-                # Erronious data points.
-                continue
+            cop = weekly_cop[record.DateTime.isocalendar().week]
             chart.add_datapoint(
-                "Heat output vs COP",
+                "Heat output vs weekly COP",
                 (total_generated, cop),
             )
     charts.append(chart)
