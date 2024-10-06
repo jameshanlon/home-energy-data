@@ -240,20 +240,18 @@ def main(args):
     charts = []
 
     # Prepare consumed chart data.
-    chart = LineChart("Heat energy consumed")
-    chart.add_series("Heat consumed heating (Wh)")
-    chart.add_series("Heat consumed hot water (Wh)")
+    chart = LineChart("Energy consumed")
+    chart.add_series("Heating (Wh)")
+    chart.add_series("Hot water (Wh)")
     for record in dataset.records.values():
         if (
             record.ConsumedElectricalEnergy_Heating != None
             and record.ConsumedElectricalEnergy_DomesticHotWater != None
         ):
             chart.add_label(record.DateTime.strftime("%m %Y"))
+            chart.add_datapoint("Heating (Wh)", record.ConsumedElectricalEnergy_Heating)
             chart.add_datapoint(
-                "Heat consumed heating (Wh)", record.ConsumedElectricalEnergy_Heating
-            )
-            chart.add_datapoint(
-                "Heat consumed hot water (Wh)",
+                "Hot water (Wh)",
                 record.ConsumedElectricalEnergy_DomesticHotWater,
             )
     charts.append(chart)
