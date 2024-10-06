@@ -14,6 +14,10 @@
   <td>{{stats.annual_total_consumed | format_kwh}}</td>
   </tr>
   <tr>
+  <td>Average consumed daily</td>
+  <td>{{(stats.annual_total_consumed /365.25) | format_kwh}}</td>
+  </tr>
+  <tr>
   <td>annual_heating_generated</td>
   <td>{{stats.annual_heating_generated | format_kwh}}</td>
   </tr>
@@ -27,15 +31,15 @@
   </tr>
   <tr>
   <td>heating SCOP</td>
-  <td>{{stats.heating_scop}}</td>
+  <td>{{"%.2f"|format(stats.heating_scop)}}</td>
   </tr>
   <tr>
   <td>DHW SCOP</td>
-  <td>{{stats.water_scop}}</td>
+  <td>{{"%.2f"|format(stats.water_scop)}}</td>
   </tr>
   <tr>
   <td>Total SCOP</td>
-  <td>{{stats.scop}}</td>
+  <td>{{"%.2f"|format(stats.scop)}}</td>
   </tr>
 </table>
 {% endfor %}

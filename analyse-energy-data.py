@@ -139,7 +139,6 @@ class Dataset:
 
 
 def format_kwh(kwh: float) -> str:
-    kwh *= 1000
 
     # Define the SI units and their corresponding power of 10 values
     units = [(1e9, "GWh"), (1e6, "MWh"), (1e3, "kWh"), (1, "Wh")]
@@ -242,8 +241,8 @@ def main(args):
 
     # Prepare consumed chart data.
     chart = LineChart("Heat energy consumed")
-    chart.add_series("Heat consumed heating (kWh)")
-    chart.add_series("Heat consumed hot water (kWh)")
+    chart.add_series("Heat consumed heating (Wh)")
+    chart.add_series("Heat consumed hot water (Wh)")
     for record in dataset.records.values():
         if (
             record.ConsumedElectricalEnergy_Heating != None
@@ -251,18 +250,18 @@ def main(args):
         ):
             chart.add_label(record.DateTime.strftime("%m %Y"))
             chart.add_datapoint(
-                "Heat consumed heating (kWh)", record.ConsumedElectricalEnergy_Heating
+                "Heat consumed heating (Wh)", record.ConsumedElectricalEnergy_Heating
             )
             chart.add_datapoint(
-                "Heat consumed hot water (kWh)",
+                "Heat consumed hot water (Wh)",
                 record.ConsumedElectricalEnergy_DomesticHotWater,
             )
     charts.append(chart)
 
     # Prepare generated chart data.
     chart = LineChart("Heat energy generated")
-    chart.add_series("Heat generated heating (kWh)")
-    chart.add_series("Heat generated hot water (kWh)")
+    chart.add_series("Heat generated heating (Wh)")
+    chart.add_series("Heat generated hot water (Wh)")
     for record in dataset.records.values():
         if (
             record.HeatGenerated_Heating != None
@@ -270,44 +269,56 @@ def main(args):
         ):
             chart.add_label(record.DateTime.strftime("%m %Y"))
             chart.add_datapoint(
-                "Heat generated heating (kWh)", record.HeatGenerated_Heating
+                "Heat generated heating (Wh)", record.HeatGenerated_Heating
             )
             chart.add_datapoint(
-                "Heat generated hot water (kWh)", record.HeatGenerated_DomesticHotWater
+                "Heat generated hot water (Wh)", record.HeatGenerated_DomesticHotWater
             )
     charts.append(chart)
 
     # Prepare averaged combined COP per week.
-    weekly_cop = [0] * 53
-    for record in dataset.records.values():
-        if (
-            record.ConsumedElectricalEnergy_Heating != None
-            and record.ConsumedElectricalEnergy_DomesticHotWater != None
-            and record.HeatGenerated_Heating != None
-            and record.HeatGenerated_DomesticHotWater != None
-        ):
-            total_consumed = (
-                record.ConsumedElectricalEnergy_Heating
-                + record.ConsumedElectricalEnergy_DomesticHotWater
-            )
-            total_generated = (
-                record.HeatGenerated_Heating + record.HeatGenerated_DomesticHotWater
-            )
-            cop_combined = (
-                0 if total_consumed == 0 else total_generated / total_consumed
-            )
-            if cop_combined > 6:
-                # Erronious data point.
-                continue
-            weekly_cop[record.DateTime.isocalendar().week] += cop_combined
-    # Divide sums through for average.
-    weekly_cop = [x / 7 for x in weekly_cop]
+    weekly_cop = {}
+    for year in [2023, 2024]:
+        weekly_cop[year] = [0] * 53
+        for record in dataset.iter_year(year):
+            if (
+                record.ConsumedElectricalEnergy_Heating != None
+                and record.ConsumedElectricalEnergy_DomesticHotWater != None
+                and record.HeatGenerated_Heating != None
+                and record.HeatGenerated_DomesticHotWater != None
+            ):
+                total_consumed = (
+                    record.ConsumedElectricalEnergy_Heating
+                    + record.ConsumedElectricalEnergy_DomesticHotWater
+                )
+                total_generated = (
+                    record.HeatGenerated_Heating + record.HeatGenerated_DomesticHotWater
+                )
+                cop_combined = (
+                    0 if total_consumed == 0 else total_generated / total_consumed
+                )
+                if cop_combined > 6:
+                    # Erronious data point.
+                    continue
+                weekly_cop[year][record.DateTime.isocalendar().week] += cop_combined
+        # Divide sums through for average.
+        weekly_cop[year] = [x / 7 for x in weekly_cop[year]]
+
+    # Prepare weekly COP
+    chart = LineChart("Weekly averaged COP")
+    for week in range(1, 53):
+        chart.add_label(str(week))
+    for year in [2023, 2024]:
+        chart.add_series(str(year))
+        for x in weekly_cop[year]:
+            chart.add_datapoint(str(year), x)
+    charts.append(chart)
 
     # Prepare the COP chart data.
     chart = LineChart("COP")
     chart.add_series("COP heating")
     chart.add_series("COP hot water")
-    chart.add_series("COP combined weekly")
+    # chart.add_series("COP combined weekly")
     for record in dataset.records.values():
         if (
             record.ConsumedElectricalEnergy_Heating != None
@@ -333,9 +344,9 @@ def main(args):
             chart.add_label(record.DateTime.strftime("%m %Y"))
             chart.add_datapoint("COP heating", cop_heating)
             chart.add_datapoint("COP hot water", cop_water)
-            chart.add_datapoint(
-                "COP combined weekly", weekly_cop[record.DateTime.isocalendar().week]
-            )
+            # chart.add_datapoint(
+            #    "COP combined weekly", weekly_cop[record.DateTime.isocalendar().week]
+            # )
     charts.append(chart)
 
     # Prepare the DHW chart data.
@@ -370,7 +381,7 @@ def main(args):
                 total_generated = (
                     record.HeatGenerated_Heating + record.HeatGenerated_DomesticHotWater
                 )
-                cop = weekly_cop[record.DateTime.isocalendar().week]
+                cop = weekly_cop[year][record.DateTime.isocalendar().week]
                 chart.add_datapoint(
                     str(year),
                     (total_generated, cop),
