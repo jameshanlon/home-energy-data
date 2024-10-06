@@ -358,20 +358,21 @@ def main(args):
 
     # Prepare chart of heat output vs COP
     chart = ScatterChart("Heat output vs weekly COP")
-    chart.add_series("Heat output vs weekly COP")
-    for record in dataset.records.values():
-        if (
-            record.HeatGenerated_Heating != None
-            and record.HeatGenerated_DomesticHotWater != None
-        ):
-            total_generated = (
-                record.HeatGenerated_Heating + record.HeatGenerated_DomesticHotWater
-            )
-            cop = weekly_cop[record.DateTime.isocalendar().week]
-            chart.add_datapoint(
-                "Heat output vs weekly COP",
-                (total_generated, cop),
-            )
+    for year in [2023, 2024]:
+        chart.add_series(str(year))
+        for record in dataset.iter_year(year):
+            if (
+                record.HeatGenerated_Heating != None
+                and record.HeatGenerated_DomesticHotWater != None
+            ):
+                total_generated = (
+                    record.HeatGenerated_Heating + record.HeatGenerated_DomesticHotWater
+                )
+                cop = weekly_cop[record.DateTime.isocalendar().week]
+                chart.add_datapoint(
+                    str(year),
+                    (total_generated, cop),
+                )
     charts.append(chart)
 
     # Prepare stats.
