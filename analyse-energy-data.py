@@ -318,7 +318,6 @@ def main(args):
     chart = LineChart("COP")
     chart.add_series("COP heating")
     chart.add_series("COP hot water")
-    # chart.add_series("COP combined weekly")
     for record in dataset.records.values():
         if (
             record.ConsumedElectricalEnergy_Heating != None
@@ -344,9 +343,6 @@ def main(args):
             chart.add_label(record.DateTime.strftime("%m %Y"))
             chart.add_datapoint("COP heating", cop_heating)
             chart.add_datapoint("COP hot water", cop_water)
-            # chart.add_datapoint(
-            #    "COP combined weekly", weekly_cop[record.DateTime.isocalendar().week]
-            # )
     charts.append(chart)
 
     # Prepare the DHW chart data.
@@ -392,7 +388,13 @@ def main(args):
     annual_stats = []
     for year in [2023, 2024]:
         s = Stats(year)
-        # TODO: number of recorded days
+
+        # Calculate the number of days in the dataset.
+        dates = [x.DateTime for x in dataset.iter_year(year)]
+        diff = max(dates) - min(dates)
+        seconds_in_day = 24 * 60 * 60
+        s.length_days = diff.days
+
         s.annual_heating_consumed = dataset.total(
             year, "ConsumedElectricalEnergy_Heating"
         )

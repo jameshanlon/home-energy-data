@@ -2,6 +2,10 @@
 <h1>{{stats.year}}</h1>
 <table>
   <tr>
+  <td>length in days</td>
+  <td>{{stats.length_days}}</td>
+  </tr>
+  <tr>
   <td>annual_heating_consumed</td>
   <td>{{stats.annual_heating_consumed | format_kwh}}</td>
   </tr>
@@ -15,7 +19,7 @@
   </tr>
   <tr>
   <td>Average consumed daily</td>
-  <td>{{(stats.annual_total_consumed /365.25) | format_kwh}}</td>
+  <td>{{(stats.annual_total_consumed / stats.length_days) | format_kwh}}</td>
   </tr>
   <tr>
   <td>annual_heating_generated</td>
