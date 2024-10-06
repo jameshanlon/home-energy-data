@@ -233,12 +233,16 @@ def main(args):
             ],
         )
 
-    # Scale the consumed Wh values.
+    # Scale the measured Wh values.
     for record in dataset.records.values():
         if record.ConsumedElectricalEnergy_Heating:
-            record.ConsumedElectricalEnergy_Heating *= args.scale_consumed
+            record.ConsumedElectricalEnergy_Heating *= args.scale_wh
         if record.ConsumedElectricalEnergy_DomesticHotWater:
-            record.ConsumedElectricalEnergy_DomesticHotWater *= args.scale_consumed
+            record.ConsumedElectricalEnergy_DomesticHotWater *= args.scale_wh
+        if record.HeatGenerated_Heating:
+            record.HeatGenerated_Heating *= args.scale_wh
+        if record.HeatGenerated_DomesticHotWater:
+            record.HeatGenerated_DomesticHotWater *= args.scale_wh
 
     if args.dump:
         dataset.dump()
@@ -411,7 +415,7 @@ def main(args):
     annual_stats = []
     for year in [2023, 2024]:
         s = Stats(year)
-        s.scale_consumed = args.scale_consumed
+        s.scale_wh = args.scale_wh
 
         # Calculate the number of days in the dataset.
         dates = [x.DateTime for x in dataset.iter_year(year)]
@@ -465,9 +469,9 @@ if __name__ == "__main__":
         help="Specify an output directory (default: 'output')",
     )
     parser.add_argument(
-        "--scale-consumed",
+        "--scale-wh",
         type=float,
-        help="Scale consumed electicity in Wh values, default=1.0",
+        help="Scale measured energy in Wh values, default=1.0",
     )
     parser.add_argument("--debug", action="store_true", help="Print debugging messages")
     args = parser.parse_args()
