@@ -192,6 +192,8 @@ def main(args):
     dataset = Dataset()
 
     for year in [2023, 2024]:
+        # Oddly the colums are repeated for different parts of the dataset.
+        column_repeats = 6 if year == 2023 else 10
         read_csv(
             dataset,
             f"data/{year}/energy_data_{year}_ArothermPlus_21222500100211330001005519N3.csv",
@@ -206,7 +208,7 @@ def main(args):
                 "EarnedEnvironmentEnergy:Heating",
                 "EarnedEnvironmentEnergy:DomesticHotWater",
             ]
-            * 5,
+            * column_repeats,
         )
         read_csv(
             dataset,
@@ -276,7 +278,7 @@ def main(args):
     charts.append(chart)
 
     # Prepare averaged combined COP per week.
-    weekly_cop = [0] * 52
+    weekly_cop = [0] * 53
     for record in dataset.records.values():
         if (
             record.ConsumedElectricalEnergy_Heating != None
