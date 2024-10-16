@@ -1,4 +1,4 @@
-# This file contains the energy consumption and yields of your device "aroTHERM plus" with serial 21222500100211330001005519N3 exported at 2024-10-02 10:16:24.
+# This file contains the energy consumption and yields of your device "aroTHERM plus" with serial 21222500100211330001005519N3 exported at 2024-10-16 19:27:27.
 # All values are given in Watt hours (Wh)
 DateTime;ConsumedElectricalEnergy:Heating;ConsumedElectricalEnergy:DomesticHotWater;HeatGenerated:Heating;HeatGenerated:DomesticHotWater;EarnedEnvironmentEnergy:Heating;EarnedEnvironmentEnergy:DomesticHotWater;ConsumedElectricalEnergy:Heating;ConsumedElectricalEnergy:DomesticHotWater;HeatGenerated:Heating;HeatGenerated:DomesticHotWater;EarnedEnvironmentEnergy:Heating;EarnedEnvironmentEnergy:DomesticHotWater;ConsumedElectricalEnergy:Heating;ConsumedElectricalEnergy:DomesticHotWater;HeatGenerated:Heating;HeatGenerated:DomesticHotWater;EarnedEnvironmentEnergy:Heating;EarnedEnvironmentEnergy:DomesticHotWater;ConsumedElectricalEnergy:Heating;ConsumedElectricalEnergy:DomesticHotWater;HeatGenerated:Heating;HeatGenerated:DomesticHotWater;EarnedEnvironmentEnergy:Heating;EarnedEnvironmentEnergy:DomesticHotWater;ConsumedElectricalEnergy:Heating;ConsumedElectricalEnergy:DomesticHotWater;HeatGenerated:Heating;HeatGenerated:DomesticHotWater;EarnedEnvironmentEnergy:Heating;EarnedEnvironmentEnergy:DomesticHotWater;ConsumedElectricalEnergy:Heating;ConsumedElectricalEnergy:DomesticHotWater;HeatGenerated:Heating;HeatGenerated:DomesticHotWater;EarnedEnvironmentEnergy:Heating;EarnedEnvironmentEnergy:DomesticHotWater;ConsumedElectricalEnergy:Heating;ConsumedElectricalEnergy:DomesticHotWater;HeatGenerated:Heating;HeatGenerated:DomesticHotWater;EarnedEnvironmentEnergy:Heating;EarnedEnvironmentEnergy:DomesticHotWater;ConsumedElectricalEnergy:Heating;ConsumedElectricalEnergy:DomesticHotWater;HeatGenerated:Heating;HeatGenerated:DomesticHotWater;EarnedEnvironmentEnergy:Heating;EarnedEnvironmentEnergy:DomesticHotWater;ConsumedElectricalEnergy:Heating;ConsumedElectricalEnergy:DomesticHotWater;HeatGenerated:Heating;HeatGenerated:DomesticHotWater;EarnedEnvironmentEnergy:Heating;EarnedEnvironmentEnergy:DomesticHotWater;ConsumedElectricalEnergy:Heating;ConsumedElectricalEnergy:DomesticHotWater;HeatGenerated:Heating;HeatGenerated:DomesticHotWater;EarnedEnvironmentEnergy:Heating;EarnedEnvironmentEnergy:DomesticHotWater
 2024-01-01 00:00:00;;;;;;;6000;4000;25000;11000;19000;7000;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -276,4 +276,17 @@ DateTime;ConsumedElectricalEnergy:Heating;ConsumedElectricalEnergy:DomesticHotWa
 2024-09-29 00:00:00;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;4000;4000;16652.5;13000;12652.5;9000;;;;;;
 2024-09-30 00:00:00;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;2000;3000;7023.4;10000;5023.4;7000;;;;;;
 2024-10-01 00:00:00;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;2361.9;1000;9338.5;3000;6976.6;2000
-2024-10-02 00:00:00;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;1638.1;1000;5638.1;3000;4000;2000
+2024-10-02 00:00:00;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;2337.9;4000;8037.3;12000;5699.5;8000
+2024-10-03 00:00:00;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;4300;4000;15638;14000;11338;10000
+2024-10-04 00:00:00;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;2000;3000;7962;9000;5962;6000
+2024-10-05 00:00:00;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;2000;4000;8000;11000;6000;7000
+2024-10-06 00:00:00;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;1000;3000;4000;10000;3000;7000
+2024-10-07 00:00:00;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;1000;3000;3000;10000;2000;7000
+2024-10-08 00:00:00;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;0;0;0;0;0;0
+2024-10-09 00:00:00;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;1000;3000;4000;11000;3000;8000
+2024-10-10 00:00:00;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;4000;4000;14404.1;13000;10404.1;9000
+2024-10-11 00:00:00;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;5000;5000;18595.9;13000;13595.9;8000
+2024-10-12 00:00:00;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;2000;5000;8079.7;16000;6079.7;11000
+2024-10-13 00:00:00;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;5000;4000;18756.3;12000;13756.3;8000
+2024-10-14 00:00:00;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;4000;4000;16919.6;11000;12919.6;7000
+2024-10-15 00:00:00;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;2000;1000;6243.7;3000;4243.7;2000
