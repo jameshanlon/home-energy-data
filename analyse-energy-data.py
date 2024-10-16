@@ -108,6 +108,16 @@ class Dataset:
         assert getattr(self.records[date], attr_name) == None, "overwriting data point"
         setattr(self.records[date], attr_name, value)
 
+    def iter_records(
+        self, date_from: datetime.datetime, date_to: datetime.datetime
+    ) -> Iterator[Record]:
+        for record in self.records.values():
+            if date_from != None and record.DateTime < date_from:
+                continue
+            if date_to != None and record.DateTime > date_to:
+                continue
+            yield record
+
     def iter_year(self, year: int) -> Iterator[Record]:
         for record in self.records.values():
             if record.DateTime.year == year:
@@ -255,7 +265,7 @@ def main(args):
     chart.add_series("Heating (Wh)")
     chart.add_series("Hot water (Wh)")
     chart.add_series("Total (Wh)")
-    for record in dataset.records.values():
+    for record in dataset.iter_records(args.date_from, args.date_to):
         if (
             record.ConsumedElectricalEnergy_Heating != None
             and record.ConsumedElectricalEnergy_DomesticHotWater != None
@@ -277,7 +287,7 @@ def main(args):
     chart = LineChart("Heat energy generated")
     chart.add_series("Heat generated heating (Wh)")
     chart.add_series("Heat generated hot water (Wh)")
-    for record in dataset.records.values():
+    for record in dataset.iter_records(args.date_from, args.date_to):
         if (
             record.HeatGenerated_Heating != None
             and record.HeatGenerated_DomesticHotWater != None
@@ -333,7 +343,7 @@ def main(args):
     chart = LineChart("COP")
     chart.add_series("COP heating")
     chart.add_series("COP hot water")
-    for record in dataset.records.values():
+    for record in dataset.iter_records(args.date_from, args.date_to):
         if (
             record.ConsumedElectricalEnergy_Heating != None
             and record.ConsumedElectricalEnergy_DomesticHotWater != None
@@ -363,7 +373,7 @@ def main(args):
     # Prepare the DHW chart data.
     chart = LineChart("Hot water temperature (C)")
     chart.add_series("DHW")
-    for record in dataset.records.values():
+    for record in dataset.iter_records(args.date_from, args.date_to):
         if record.DhwTankTemperature != None:
             chart.add_label(record.DateTime.strftime("%d %m %Y"))
             chart.add_datapoint("DHW", record.DhwTankTemperature)
@@ -373,7 +383,7 @@ def main(args):
     chart = LineChart("Ambient temperature")
     chart.add_series("Internal")
     chart.add_series("External")
-    for record in dataset.records.values():
+    for record in dataset.iter_records(args.date_from, args.date_to):
         if record.OutdoorTemperature != None and record.CurrentRoomTemperature != None:
             chart.add_label(record.DateTime.strftime("%d %m %Y"))
             chart.add_datapoint("Internal", record.CurrentRoomTemperature)
@@ -480,6 +490,18 @@ if __name__ == "__main__":
         type=float,
         default=1.0,
         help="Scale measured energy generated in Wh values, default=1.0",
+    )
+    parser.add_argument(
+        "--from",
+        type=lambda s: datetime.datetime.strptime(s, "%Y-%m-%d"),
+        help="Only include data points from this date Y-m-d",
+        dest="date_from",
+    )
+    parser.add_argument(
+        "--to",
+        type=lambda s: datetime.datetime.strptime(s, "%Y-%m-%d"),
+        help="Only include data points to this date Y-m-d",
+        dest="date_to",
     )
     parser.add_argument("--debug", action="store_true", help="Print debugging messages")
     args = parser.parse_args()
