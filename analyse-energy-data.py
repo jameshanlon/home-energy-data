@@ -123,7 +123,19 @@ class Dataset:
             if record.DateTime.year == year:
                 yield record
 
-    def total(self, year: int, metric: str):
+    def total(
+        self,
+        year: int,
+        metric: str,
+        date_from: datetime.datetime,
+        date_to: datetime.datetime,
+    ):
+        return sum(
+            getattr(record, metric) if getattr(record, metric) != None else 0
+            for record in self.iter_records(date_from, date_to)
+        )
+
+    def total_year(self, year: int, metric: str):
         return sum(
             getattr(record, metric) if getattr(record, metric) != None else 0
             for record in self.iter_year(year)
@@ -183,12 +195,20 @@ def read_csv(dataset, filename: str, headers: list[str]) -> Dataset:
         logging.info(f"Read {count} rows from {filename}")
 
 
-def generate_html(charts: list[Chart], annual_stats: list[Stats], output_path: Path):
+def generate_html(
+    charts: list[Chart],
+    annual_stats: list[Stats],
+    total_stats: Stats,
+    output_path: Path,
+):
     environment = Environment(loader=FileSystemLoader("templates/"))
     environment.filters["format_kwh"] = format_kwh
     template = environment.get_template("index.html")
     content = template.render(
-        charts=charts, annual_stats=annual_stats, ChartType=ChartType
+        charts=charts,
+        annual_stats=annual_stats,
+        total_stats=total_stats,
+        ChartType=ChartType,
     )
 
     output_file = output_path / "index.html"
@@ -421,10 +441,12 @@ def main(args):
             )
     charts.append(chart)
 
-    # Prepare stats.
+    # Prepare year stats.
     annual_stats = []
     for year in [2023, 2024]:
         s = Stats(year)
+
+        # Scale factors.
         s.scale_consumed = args.scale_consumed
         s.scale_generated = args.scale_generated
 
@@ -434,29 +456,77 @@ def main(args):
         seconds_in_day = 24 * 60 * 60
         s.length_days = diff.days
 
-        s.annual_heating_consumed = dataset.total(
+        # Dataset totals.
+        s.annual_heating_consumed = dataset.total_year(
             year, "ConsumedElectricalEnergy_Heating"
         )
-        s.annual_water_consumed = dataset.total(
+        s.annual_water_consumed = dataset.total_year(
             year, "ConsumedElectricalEnergy_DomesticHotWater"
         )
+        s.annual_heating_generated = dataset.total_year(year, "HeatGenerated_Heating")
+        s.annual_water_generated = dataset.total_year(
+            year, "HeatGenerated_DomesticHotWater"
+        )
+
+        # Combined totals.
         s.annual_total_consumed = s.annual_heating_consumed + s.annual_water_consumed
-        s.annual_heating_generated = dataset.total(year, "HeatGenerated_Heating")
-        s.annual_water_generated = dataset.total(year, "HeatGenerated_DomesticHotWater")
         s.annual_total_generated = s.annual_heating_generated + s.annual_water_generated
+
+        # COP
         s.heating_scop = s.annual_heating_generated / s.annual_heating_consumed
         s.water_scop = s.annual_water_generated / s.annual_water_consumed
         s.scop = (s.annual_heating_generated + s.annual_water_generated) / (
             s.annual_heating_consumed + s.annual_water_consumed
         )
+
+        # Done
         annual_stats.append(s)
+
+    # Prepare total stats.
+    # TODO: refactor to remove duplication with above.
+    s = Stats(year)
+
+    # Scale factors.
+    s.scale_consumed = args.scale_consumed
+    s.scale_generated = args.scale_generated
+
+    # Calculate the number of days in the dataset.
+    dates = [x.DateTime for x in dataset.iter_records(args.date_from, args.date_to)]
+    diff = max(dates) - min(dates)
+    seconds_in_day = 24 * 60 * 60
+    s.length_days = diff.days
+
+    # Dataset totals.
+    s.annual_heating_consumed = dataset.total(
+        year, "ConsumedElectricalEnergy_Heating", args.date_from, args.date_to
+    )
+    s.annual_water_consumed = dataset.total(
+        year, "ConsumedElectricalEnergy_DomesticHotWater", args.date_from, args.date_to
+    )
+    s.annual_heating_generated = dataset.total(
+        year, "HeatGenerated_Heating", args.date_from, args.date_to
+    )
+    s.annual_water_generated = dataset.total(
+        year, "HeatGenerated_DomesticHotWater", args.date_from, args.date_to
+    )
+
+    # Combined totals.
+    s.annual_total_consumed = s.annual_heating_consumed + s.annual_water_consumed
+    s.annual_total_generated = s.annual_heating_generated + s.annual_water_generated
+
+    # COP
+    s.heating_scop = s.annual_heating_generated / s.annual_heating_consumed
+    s.water_scop = s.annual_water_generated / s.annual_water_consumed
+    s.scop = (s.annual_heating_generated + s.annual_water_generated) / (
+        s.annual_heating_consumed + s.annual_water_consumed
+    )
 
     # Output path.
     output_path = Path(args.output_dir)
     output_path.mkdir(exist_ok=True)
 
     # Generate HTML
-    generate_html(charts, annual_stats, output_path)
+    generate_html(charts, annual_stats, s, output_path)
 
 
 if __name__ == "__main__":

@@ -1,5 +1,4 @@
-{% for stats in annual_stats %}
-<h1>{{stats.year}}</h1>
+{%- macro stats_table(stats) %}
 <table>
   <tr>
   <td>Length in days</td>
@@ -54,7 +53,15 @@
   <td>{{"%.2f"|format(stats.scop)}}</td>
   </tr>
 </table>
+{% endmacro -%}
+
+{% for stats in annual_stats %}
+<h1>{{stats.year}}</h1>
+{{stats_table(stats)}}
 {% endfor %}
+
+<h1>Total</h1>
+{{stats_table(total_stats)}}
 
 <div>
   {% for chart in charts %}
