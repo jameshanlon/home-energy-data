@@ -24,6 +24,8 @@ from typing import Iterator, TypeAlias
 from enum import Enum, auto
 
 
+YEARS = [2023, 2024, 2025]
+
 class Record:
     def __init__(self):
         self.DateTime: datetime.datetime = None
@@ -220,7 +222,7 @@ def generate_html(
 def main(args):
     dataset = Dataset()
 
-    for year in [2023, 2024]:
+    for year in YEARS:
         # Oddly the colums are repeated for different parts of the dataset.
         column_repeats = 6 if year == 2023 else 10
         read_csv(
@@ -323,7 +325,7 @@ def main(args):
 
     # Prepare averaged combined COP per week.
     weekly_cop = {}
-    for year in [2023, 2024]:
+    for year in YEARS:
         weekly_cop[year] = [0] * 53
         for record in dataset.iter_year(year):
             if (
@@ -353,7 +355,7 @@ def main(args):
     chart = LineChart("Weekly averaged COP")
     for week in range(1, 53):
         chart.add_label(str(week))
-    for year in [2023, 2024]:
+    for year in YEARS:
         chart.add_series(str(year))
         for x in weekly_cop[year]:
             chart.add_datapoint(str(year), x)
@@ -412,7 +414,7 @@ def main(args):
 
     # Prepare chart of heat output vs COP
     chart = ScatterChart("Heat output vs COP averaged weekly")
-    for year in [2023, 2024]:
+    for year in YEARS:
 
         # Collect by week.
         heat_generated_weekly = [0] * 53
@@ -443,7 +445,7 @@ def main(args):
 
     # Prepare year stats.
     annual_stats = []
-    for year in [2023, 2024]:
+    for year in YEARS:
         s = Stats(year)
 
         # Scale factors.
