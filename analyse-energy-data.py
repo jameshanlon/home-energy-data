@@ -181,6 +181,7 @@ def read_csv(dataset, filename: str, headers: list[str]) -> Dataset:
     """
     Read a CSV file with the specified columns.
     """
+    logging.info(f"Reading {filename}")
     with open(filename, "r") as f:
         contents = csv.reader(f, delimiter=";", quotechar='"')
         count = 0
@@ -194,7 +195,7 @@ def read_csv(dataset, filename: str, headers: list[str]) -> Dataset:
                 if row[i] != "":
                     dataset.add(date, headers[i], float(row[i]))
             count += 1
-        logging.info(f"Read {count} rows from {filename}")
+        logging.info(f"Read {count} rows")
 
 
 def generate_html(
@@ -224,7 +225,7 @@ def main(args):
 
     for year in YEARS:
         # Oddly the colums are repeated for different parts of the dataset.
-        column_repeats = 6 if year == 2023 else 10
+        column_repeats = 6 if year == 2023 else 1
         read_csv(
             dataset,
             f"data/{year}/energy_data_{year}_ArothermPlus_21222500100211330001005519N3.csv",
