@@ -13,11 +13,11 @@ __license__ = "UNLICENSE"
 import argparse
 import csv
 import datetime
+import json
 import logging
 from tabulate import tabulate
 from rich import print
 from dataclasses import dataclass
-from jinja2 import Environment, FileSystemLoader
 from pathlib import Path
 from collections import defaultdict
 from typing import Iterator, TypeAlias
@@ -25,6 +25,7 @@ from enum import Enum, auto
 
 
 YEARS = [2023, 2024, 2025]
+
 
 class Record:
     def __init__(self):
@@ -113,7 +114,7 @@ class Dataset:
     def iter_records(
         self, date_from: datetime.datetime, date_to: datetime.datetime
     ) -> Iterator[Record]:
-        for record in self.records.values():
+        for record in sorted(self.records.values(), key=lambda r: r.DateTime):
             if date_from != None and record.DateTime < date_from:
                 continue
             if date_to != None and record.DateTime > date_to:
@@ -198,25 +199,56 @@ def read_csv(dataset, filename: str, headers: list[str]) -> Dataset:
         logging.info(f"Read {count} rows")
 
 
-def generate_html(
+def generate_json(
     charts: list[Chart],
     annual_stats: list[Stats],
     total_stats: Stats,
     output_path: Path,
 ):
-    environment = Environment(loader=FileSystemLoader("templates/"))
-    environment.filters["format_kwh"] = format_kwh
-    template = environment.get_template("index.html")
-    content = template.render(
-        charts=charts,
-        annual_stats=annual_stats,
-        total_stats=total_stats,
-        ChartType=ChartType,
-    )
+    def serialize_chart(chart):
+        if isinstance(chart, LineChart):
+            return {
+                "name": chart.name,
+                "type": "line",
+                "labels": chart.labels,
+                "series": chart.series,
+            }
+        else:
+            return {
+                "name": chart.name,
+                "type": "scatter",
+                "series": {
+                    name: [{"x": pt[0], "y": pt[1]} for pt in points]
+                    for name, points in chart.series.items()
+                },
+            }
 
-    output_file = output_path / "index.html"
+    def serialize_stats(s):
+        return {
+            "year": s.year,
+            "length_days": s.length_days,
+            "scale_consumed": s.scale_consumed,
+            "scale_generated": s.scale_generated,
+            "annual_heating_consumed": s.annual_heating_consumed,
+            "annual_water_consumed": s.annual_water_consumed,
+            "annual_heating_generated": s.annual_heating_generated,
+            "annual_water_generated": s.annual_water_generated,
+            "annual_total_consumed": s.annual_total_consumed,
+            "annual_total_generated": s.annual_total_generated,
+            "heating_scop": s.heating_scop,
+            "water_scop": s.water_scop,
+            "scop": s.scop,
+        }
+
+    data = {
+        "charts": [serialize_chart(c) for c in charts],
+        "annual_stats": [serialize_stats(s) for s in annual_stats],
+        "total_stats": serialize_stats(total_stats),
+    }
+
+    output_file = output_path / "data.json"
     with open(output_file, mode="w", encoding="utf-8") as f:
-        f.write(content)
+        json.dump(data, f)
         logging.info(f"Wrote {output_file}")
 
 
@@ -358,8 +390,8 @@ def main(args):
         chart.add_label(str(week))
     for year in YEARS:
         chart.add_series(str(year))
-        for x in weekly_cop[year]:
-            chart.add_datapoint(str(year), x)
+        for week in range(1, 53):
+            chart.add_datapoint(str(year), weekly_cop[year][week])
     charts.append(chart)
 
     # Prepare the COP chart data.
@@ -393,24 +425,36 @@ def main(args):
             chart.add_datapoint("COP hot water", cop_water)
     charts.append(chart)
 
-    # Prepare the DHW chart data.
+    # Prepare the DHW chart data (daily average).
     chart = LineChart("Hot water temperature (C)")
     chart.add_series("DHW")
+    daily_dhw = defaultdict(list)
     for record in dataset.iter_records(args.date_from, args.date_to):
         if record.DhwTankTemperature != None:
-            chart.add_label(record.DateTime.strftime("%d %m %Y"))
-            chart.add_datapoint("DHW", record.DhwTankTemperature)
+            daily_dhw[record.DateTime.date()].append(record.DhwTankTemperature)
+    for date in sorted(daily_dhw):
+        chart.add_label(date.strftime("%d %m %Y"))
+        chart.add_datapoint("DHW", sum(daily_dhw[date]) / len(daily_dhw[date]))
     charts.append(chart)
 
-    # Prepare the internal/external temperature chart.
+    # Prepare the internal/external temperature chart (daily average).
     chart = LineChart("Ambient temperature")
     chart.add_series("Internal")
     chart.add_series("External")
+    daily_internal = defaultdict(list)
+    daily_external = defaultdict(list)
     for record in dataset.iter_records(args.date_from, args.date_to):
         if record.OutdoorTemperature != None and record.CurrentRoomTemperature != None:
-            chart.add_label(record.DateTime.strftime("%d %m %Y"))
-            chart.add_datapoint("Internal", record.CurrentRoomTemperature)
-            chart.add_datapoint("External", record.OutdoorTemperature)
+            daily_internal[record.DateTime.date()].append(record.CurrentRoomTemperature)
+            daily_external[record.DateTime.date()].append(record.OutdoorTemperature)
+    for date in sorted(daily_internal):
+        chart.add_label(date.strftime("%d %m %Y"))
+        chart.add_datapoint(
+            "Internal", sum(daily_internal[date]) / len(daily_internal[date])
+        )
+        chart.add_datapoint(
+            "External", sum(daily_external[date]) / len(daily_external[date])
+        )
     charts.append(chart)
 
     # Prepare chart of heat output vs COP
@@ -438,6 +482,8 @@ def main(args):
         for week in range(1, 53):
             cop = weekly_cop[year][week]
             heat = heat_generated_weekly[week]
+            if heat == 0 and cop == 0:
+                continue
             chart.add_datapoint(
                 str(year),
                 (heat, cop),
@@ -528,8 +574,8 @@ def main(args):
     output_path = Path(args.output_dir)
     output_path.mkdir(exist_ok=True)
 
-    # Generate HTML
-    generate_html(charts, annual_stats, s, output_path)
+    # Generate JSON
+    generate_json(charts, annual_stats, s, output_path)
 
 
 if __name__ == "__main__":

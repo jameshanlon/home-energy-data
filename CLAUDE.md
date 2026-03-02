@@ -34,7 +34,7 @@ make serve
 make clean
 ```
 
-Code is formatted with `black` (enforced via pre-commit).
+Code is formatted with `black` (enforced via pre-commit). The frontend build requires Node.js ≥ 14.18 (Node 20 via nvm is used on this machine); `make build` sources nvm automatically.
 
 ## Architecture
 
@@ -50,6 +50,10 @@ Code is formatted with `black` (enforced via pre-commit).
 5. `main()` builds `LineChart` and `ScatterChart` objects from the dataset, then passes them to `generate_json()`.
 6. `generate_json()` serialises the charts and stats to `output/data.json`.
 7. The React app (`frontend/src/App.jsx`) fetches `data.json` on mount and renders the dashboard.
+
+**Data ordering note:** `iter_records()` sorts by `DateTime` before yielding. This is necessary because the `defaultdict` insertion order is not chronological — energy CSVs are read first (inserting their timestamps), so hourly timestamps from DHW/system/zone CSVs that don't overlap get appended later.
+
+**Temperature chart aggregation:** DHW and ambient temperature CSVs contain hourly data (~18k points over the full date range). These are aggregated to daily averages before serialisation to keep the charts readable.
 
 **Key Python classes:**
 - `Record` — one data point per datetime; fields map directly to CSV column names with `:` → `_`.
