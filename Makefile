@@ -10,7 +10,7 @@ install: venv
 	cd frontend && npm install
 
 venv:
-	test -d venv || /opt/homebrew/bin/python3.13 -m venv venv
+	test -d venv || python3 -m venv venv
 
 run:
 	. venv/bin/activate && ( \
@@ -18,7 +18,7 @@ run:
 	)
 
 build:
-	cd frontend && npm run build
+	bash -c 'source $$HOME/.nvm/nvm.sh && nvm use 20 && cd frontend && npm run build'
 
 serve:
 	python3 -m http.server 8001 --directory ${OUTPUT_DIR}

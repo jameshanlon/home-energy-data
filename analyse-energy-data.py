@@ -26,6 +26,7 @@ from enum import Enum, auto
 
 YEARS = [2023, 2024, 2025]
 
+
 class Record:
     def __init__(self):
         self.DateTime: datetime.datetime = None
@@ -113,7 +114,7 @@ class Dataset:
     def iter_records(
         self, date_from: datetime.datetime, date_to: datetime.datetime
     ) -> Iterator[Record]:
-        for record in self.records.values():
+        for record in sorted(self.records.values(), key=lambda r: r.DateTime):
             if date_from != None and record.DateTime < date_from:
                 continue
             if date_to != None and record.DateTime > date_to:
@@ -424,24 +425,36 @@ def main(args):
             chart.add_datapoint("COP hot water", cop_water)
     charts.append(chart)
 
-    # Prepare the DHW chart data.
+    # Prepare the DHW chart data (daily average).
     chart = LineChart("Hot water temperature (C)")
     chart.add_series("DHW")
+    daily_dhw = defaultdict(list)
     for record in dataset.iter_records(args.date_from, args.date_to):
         if record.DhwTankTemperature != None:
-            chart.add_label(record.DateTime.strftime("%d %m %Y"))
-            chart.add_datapoint("DHW", record.DhwTankTemperature)
+            daily_dhw[record.DateTime.date()].append(record.DhwTankTemperature)
+    for date in sorted(daily_dhw):
+        chart.add_label(date.strftime("%d %m %Y"))
+        chart.add_datapoint("DHW", sum(daily_dhw[date]) / len(daily_dhw[date]))
     charts.append(chart)
 
-    # Prepare the internal/external temperature chart.
+    # Prepare the internal/external temperature chart (daily average).
     chart = LineChart("Ambient temperature")
     chart.add_series("Internal")
     chart.add_series("External")
+    daily_internal = defaultdict(list)
+    daily_external = defaultdict(list)
     for record in dataset.iter_records(args.date_from, args.date_to):
         if record.OutdoorTemperature != None and record.CurrentRoomTemperature != None:
-            chart.add_label(record.DateTime.strftime("%d %m %Y"))
-            chart.add_datapoint("Internal", record.CurrentRoomTemperature)
-            chart.add_datapoint("External", record.OutdoorTemperature)
+            daily_internal[record.DateTime.date()].append(record.CurrentRoomTemperature)
+            daily_external[record.DateTime.date()].append(record.OutdoorTemperature)
+    for date in sorted(daily_internal):
+        chart.add_label(date.strftime("%d %m %Y"))
+        chart.add_datapoint(
+            "Internal", sum(daily_internal[date]) / len(daily_internal[date])
+        )
+        chart.add_datapoint(
+            "External", sum(daily_external[date]) / len(daily_external[date])
+        )
     charts.append(chart)
 
     # Prepare chart of heat output vs COP
@@ -469,6 +482,8 @@ def main(args):
         for week in range(1, 53):
             cop = weekly_cop[year][week]
             heat = heat_generated_weekly[week]
+            if heat == 0 and cop == 0:
+                continue
             chart.add_datapoint(
                 str(year),
                 (heat, cop),
