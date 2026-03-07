@@ -210,6 +210,7 @@ def generate_json(
             return {
                 "name": chart.name,
                 "type": "line",
+                "y_label": getattr(chart, "y_label", None),
                 "labels": chart.labels,
                 "series": chart.series,
             }
@@ -340,6 +341,7 @@ def main(args):
                 record.ConsumedElectricalEnergy_Heating
                 + record.ConsumedElectricalEnergy_DomesticHotWater,
             )
+    chart.y_label = "Wh"
     charts_all_time.append(chart)
 
     # Prepare generated chart data.
@@ -358,6 +360,7 @@ def main(args):
             chart.add_datapoint(
                 "Heat generated hot water (Wh)", record.HeatGenerated_DomesticHotWater
             )
+    chart.y_label = "Wh"
     charts_all_time.append(chart)
 
     # Prepare averaged combined COP per week.
@@ -409,6 +412,7 @@ def main(args):
         chart.add_series(str(year))
         for week in range(1, 53):
             chart.add_datapoint(str(year), weekly_consumed[year].get(week))
+    chart.y_label = "Wh"
     charts_per_year.append(chart)
 
     # Prepare weekly total heat energy generated per year.
@@ -432,6 +436,7 @@ def main(args):
         chart.add_series(str(year))
         for week in range(1, 53):
             chart.add_datapoint(str(year), weekly_generated[year].get(week))
+    chart.y_label = "Wh"
     charts_per_year.append(chart)
 
     # Prepare weekly COP
@@ -485,6 +490,7 @@ def main(args):
     for date in sorted(daily_dhw):
         chart.add_label(date.strftime("%d %b %Y"))
         chart.add_datapoint("DHW", sum(daily_dhw[date]) / len(daily_dhw[date]))
+    chart.y_label = "°C"
     charts_all_time.append(chart)
 
     # Prepare the internal/external temperature chart (daily average).
@@ -505,6 +511,7 @@ def main(args):
         chart.add_datapoint(
             "External", sum(daily_external[date]) / len(daily_external[date])
         )
+    chart.y_label = "°C"
     charts_all_time.append(chart)
 
     # Prepare weekly averaged DHW temperature per year.
@@ -525,6 +532,7 @@ def main(args):
         for week in range(1, 53):
             vals = weekly_dhw[year][week]
             chart.add_datapoint(str(year), sum(vals) / len(vals) if vals else None)
+    chart.y_label = "°C"
     charts_per_year.append(chart)
 
     # Prepare weekly averaged ambient temperature per year.
@@ -550,6 +558,7 @@ def main(args):
         for week in range(1, 53):
             vals = weekly_internal[year][week]
             chart.add_datapoint(str(year), sum(vals) / len(vals) if vals else None)
+    chart.y_label = "°C"
     charts_per_year.append(chart)
 
     chart = LineChart("Weekly averaged external temperature (C) by year")
@@ -560,6 +569,7 @@ def main(args):
         for week in range(1, 53):
             vals = weekly_external[year][week]
             chart.add_datapoint(str(year), sum(vals) / len(vals) if vals else None)
+    chart.y_label = "°C"
     charts_per_year.append(chart)
 
     # Prepare chart of heat output vs COP

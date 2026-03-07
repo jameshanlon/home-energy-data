@@ -98,6 +98,7 @@ function ChartCard({ chart }) {
         </Typography>
         <LineChart
           xAxis={[{ scaleType: "point", data: chart.labels }]}
+          yAxis={chart.y_label ? [{ label: chart.y_label }] : undefined}
           series={series}
           height={350}
         />
