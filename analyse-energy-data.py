@@ -363,7 +363,7 @@ def main(args):
     # Prepare averaged combined COP per week.
     weekly_cop = {}
     for year in YEARS:
-        weekly_cop[year] = [0] * 53
+        cop_sums = defaultdict(float)
         for record in dataset.iter_year(year):
             if (
                 record.ConsumedElectricalEnergy_Heating != None
@@ -384,14 +384,13 @@ def main(args):
                 if cop_combined > 6:
                     # Erronious data point.
                     continue
-                weekly_cop[year][record.DateTime.isocalendar().week] += cop_combined
-        # Divide sums through for average.
-        weekly_cop[year] = [x / 7 for x in weekly_cop[year]]
+                cop_sums[record.DateTime.isocalendar().week] += cop_combined
+        weekly_cop[year] = {week: total / 7 for week, total in cop_sums.items()}
 
     # Prepare weekly total energy consumed per year.
     weekly_consumed = {}
     for year in YEARS:
-        weekly_consumed[year] = [0] * 53
+        weekly_consumed[year] = defaultdict(float)
         for record in dataset.iter_year(year):
             if (
                 record.ConsumedElectricalEnergy_Heating != None
@@ -409,13 +408,13 @@ def main(args):
     for year in YEARS:
         chart.add_series(str(year))
         for week in range(1, 53):
-            chart.add_datapoint(str(year), weekly_consumed[year][week])
+            chart.add_datapoint(str(year), weekly_consumed[year].get(week))
     charts_per_year.append(chart)
 
     # Prepare weekly total heat energy generated per year.
     weekly_generated = {}
     for year in YEARS:
-        weekly_generated[year] = [0] * 53
+        weekly_generated[year] = defaultdict(float)
         for record in dataset.iter_year(year):
             if (
                 record.HeatGenerated_Heating != None
@@ -432,7 +431,7 @@ def main(args):
     for year in YEARS:
         chart.add_series(str(year))
         for week in range(1, 53):
-            chart.add_datapoint(str(year), weekly_generated[year][week])
+            chart.add_datapoint(str(year), weekly_generated[year].get(week))
     charts_per_year.append(chart)
 
     # Prepare weekly COP
@@ -442,7 +441,7 @@ def main(args):
     for year in YEARS:
         chart.add_series(str(year))
         for week in range(1, 53):
-            chart.add_datapoint(str(year), weekly_cop[year][week])
+            chart.add_datapoint(str(year), weekly_cop[year].get(week))
     charts_per_year.append(chart)
 
     # Prepare the COP chart data.
@@ -525,7 +524,7 @@ def main(args):
         chart.add_series(str(year))
         for week in range(1, 53):
             vals = weekly_dhw[year][week]
-            chart.add_datapoint(str(year), sum(vals) / len(vals) if vals else 0)
+            chart.add_datapoint(str(year), sum(vals) / len(vals) if vals else None)
     charts_per_year.append(chart)
 
     # Prepare weekly averaged ambient temperature per year.
@@ -550,7 +549,7 @@ def main(args):
         chart.add_series(str(year))
         for week in range(1, 53):
             vals = weekly_internal[year][week]
-            chart.add_datapoint(str(year), sum(vals) / len(vals) if vals else 0)
+            chart.add_datapoint(str(year), sum(vals) / len(vals) if vals else None)
     charts_per_year.append(chart)
 
     chart = LineChart("Weekly averaged external temperature (C) by year")
@@ -560,7 +559,7 @@ def main(args):
         chart.add_series(str(year))
         for week in range(1, 53):
             vals = weekly_external[year][week]
-            chart.add_datapoint(str(year), sum(vals) / len(vals) if vals else 0)
+            chart.add_datapoint(str(year), sum(vals) / len(vals) if vals else None)
     charts_per_year.append(chart)
 
     # Prepare chart of heat output vs COP
@@ -568,7 +567,7 @@ def main(args):
     for year in YEARS:
 
         # Collect by week.
-        heat_generated_weekly = [0] * 53
+        heat_sums = defaultdict(float)
         for record in dataset.iter_year(year):
             if (
                 record.HeatGenerated_Heating != None
@@ -577,18 +576,14 @@ def main(args):
                 total_generated = (
                     record.HeatGenerated_Heating + record.HeatGenerated_DomesticHotWater
                 )
-                heat_generated_weekly[
-                    record.DateTime.isocalendar().week
-                ] += total_generated
-
-        # Divide sums through for average.
-        heat_generated_weekly = [x / 7 for x in heat_generated_weekly]
+                heat_sums[record.DateTime.isocalendar().week] += total_generated
+        heat_generated_weekly = {week: total / 7 for week, total in heat_sums.items()}
 
         chart.add_series(str(year))
         for week in range(1, 53):
-            cop = weekly_cop[year][week]
-            heat = heat_generated_weekly[week]
-            if heat == 0 and cop == 0:
+            cop = weekly_cop[year].get(week)
+            heat = heat_generated_weekly.get(week)
+            if cop is None or heat is None:
                 continue
             chart.add_datapoint(
                 str(year),
