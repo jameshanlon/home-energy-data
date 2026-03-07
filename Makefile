@@ -23,6 +23,9 @@ build:
 serve:
 	python3 -m http.server 8001 --directory ${OUTPUT_DIR}
 
+test:
+	. venv/bin/activate && pytest tests/ -v
+
 clean:
 	rm -rfv venv
 	rm -rfv ${OUTPUT_DIR}
