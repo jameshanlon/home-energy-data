@@ -200,7 +200,7 @@ def read_csv(dataset, filename: str, headers: list[str]) -> Dataset:
 
 
 def generate_json(
-    charts: list[Chart],
+    chart_groups: dict[str, list[Chart]],
     annual_stats: list[Stats],
     total_stats: Stats,
     output_path: Path,
@@ -241,7 +241,10 @@ def generate_json(
         }
 
     data = {
-        "charts": [serialize_chart(c) for c in charts],
+        "chart_groups": [
+            {"name": name, "charts": [serialize_chart(c) for c in charts]}
+            for name, charts in chart_groups.items()
+        ],
         "annual_stats": [serialize_stats(s) for s in annual_stats],
         "total_stats": serialize_stats(total_stats),
     }
@@ -313,7 +316,8 @@ def main(args):
         dataset.dump()
         return
 
-    charts = []
+    charts_all_time = []
+    charts_per_year = []
 
     # Prepare consumed chart data.
     chart = LineChart("Energy consumed")
@@ -336,7 +340,7 @@ def main(args):
                 record.ConsumedElectricalEnergy_Heating
                 + record.ConsumedElectricalEnergy_DomesticHotWater,
             )
-    charts.append(chart)
+    charts_all_time.append(chart)
 
     # Prepare generated chart data.
     chart = LineChart("Heat energy generated")
@@ -354,7 +358,7 @@ def main(args):
             chart.add_datapoint(
                 "Heat generated hot water (Wh)", record.HeatGenerated_DomesticHotWater
             )
-    charts.append(chart)
+    charts_all_time.append(chart)
 
     # Prepare averaged combined COP per week.
     weekly_cop = {}
@@ -406,7 +410,7 @@ def main(args):
         chart.add_series(str(year))
         for week in range(1, 53):
             chart.add_datapoint(str(year), weekly_consumed[year][week])
-    charts.append(chart)
+    charts_per_year.append(chart)
 
     # Prepare weekly total heat energy generated per year.
     weekly_generated = {}
@@ -429,7 +433,7 @@ def main(args):
         chart.add_series(str(year))
         for week in range(1, 53):
             chart.add_datapoint(str(year), weekly_generated[year][week])
-    charts.append(chart)
+    charts_per_year.append(chart)
 
     # Prepare weekly COP
     chart = LineChart("Weekly averaged COP")
@@ -439,7 +443,7 @@ def main(args):
         chart.add_series(str(year))
         for week in range(1, 53):
             chart.add_datapoint(str(year), weekly_cop[year][week])
-    charts.append(chart)
+    charts_per_year.append(chart)
 
     # Prepare the COP chart data.
     chart = LineChart("COP")
@@ -470,7 +474,7 @@ def main(args):
             chart.add_label(record.DateTime.strftime("%d %m %Y"))
             chart.add_datapoint("COP heating", cop_heating)
             chart.add_datapoint("COP hot water", cop_water)
-    charts.append(chart)
+    charts_all_time.append(chart)
 
     # Prepare the DHW chart data (daily average).
     chart = LineChart("Hot water temperature (C)")
@@ -482,7 +486,7 @@ def main(args):
     for date in sorted(daily_dhw):
         chart.add_label(date.strftime("%d %m %Y"))
         chart.add_datapoint("DHW", sum(daily_dhw[date]) / len(daily_dhw[date]))
-    charts.append(chart)
+    charts_all_time.append(chart)
 
     # Prepare the internal/external temperature chart (daily average).
     chart = LineChart("Ambient temperature")
@@ -502,7 +506,7 @@ def main(args):
         chart.add_datapoint(
             "External", sum(daily_external[date]) / len(daily_external[date])
         )
-    charts.append(chart)
+    charts_all_time.append(chart)
 
     # Prepare weekly averaged DHW temperature per year.
     weekly_dhw = {}
@@ -522,7 +526,7 @@ def main(args):
         for week in range(1, 53):
             vals = weekly_dhw[year][week]
             chart.add_datapoint(str(year), sum(vals) / len(vals) if vals else 0)
-    charts.append(chart)
+    charts_per_year.append(chart)
 
     # Prepare weekly averaged ambient temperature per year.
     weekly_internal = {}
@@ -547,7 +551,7 @@ def main(args):
         for week in range(1, 53):
             vals = weekly_internal[year][week]
             chart.add_datapoint(str(year), sum(vals) / len(vals) if vals else 0)
-    charts.append(chart)
+    charts_per_year.append(chart)
 
     chart = LineChart("Weekly averaged external temperature (C) by year")
     for week in range(1, 53):
@@ -557,7 +561,7 @@ def main(args):
         for week in range(1, 53):
             vals = weekly_external[year][week]
             chart.add_datapoint(str(year), sum(vals) / len(vals) if vals else 0)
-    charts.append(chart)
+    charts_per_year.append(chart)
 
     # Prepare chart of heat output vs COP
     chart = ScatterChart("Heat output vs COP averaged weekly")
@@ -590,7 +594,7 @@ def main(args):
                 str(year),
                 (heat, cop),
             )
-    charts.append(chart)
+    charts_per_year.append(chart)
 
     # Prepare year stats.
     annual_stats = []
@@ -677,7 +681,15 @@ def main(args):
     output_path.mkdir(exist_ok=True)
 
     # Generate JSON
-    generate_json(charts, annual_stats, s, output_path)
+    generate_json(
+        {
+            "All time": charts_all_time,
+            "Weekly data per year": charts_per_year,
+        },
+        annual_stats,
+        s,
+        output_path,
+    )
 
 
 if __name__ == "__main__":

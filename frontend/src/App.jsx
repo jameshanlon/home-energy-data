@@ -164,11 +164,16 @@ export default function App() {
         Home Energy Data
       </Typography>
       <StatsTable annualStats={data.annual_stats} totalStats={data.total_stats} />
-      <Box>
-        {data.charts.map((chart) => (
-          <ChartCard key={chart.name} chart={chart} />
-        ))}
-      </Box>
+      {data.chart_groups.map((group) => (
+        <Box key={group.name} sx={{ mb: 4 }}>
+          <Typography variant="h5" gutterBottom sx={{ mt: 4 }}>
+            {group.name}
+          </Typography>
+          {group.charts.map((chart) => (
+            <ChartCard key={chart.name} chart={chart} />
+          ))}
+        </Box>
+      ))}
     </Container>
   );
 }
