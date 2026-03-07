@@ -329,7 +329,7 @@ def main(args):
             record.ConsumedElectricalEnergy_Heating != None
             and record.ConsumedElectricalEnergy_DomesticHotWater != None
         ):
-            chart.add_label(record.DateTime.strftime("%d %m %Y"))
+            chart.add_label(record.DateTime.strftime("%d %b %Y"))
             chart.add_datapoint("Heating (Wh)", record.ConsumedElectricalEnergy_Heating)
             chart.add_datapoint(
                 "Hot water (Wh)",
@@ -351,7 +351,7 @@ def main(args):
             record.HeatGenerated_Heating != None
             and record.HeatGenerated_DomesticHotWater != None
         ):
-            chart.add_label(record.DateTime.strftime("%d %m %Y"))
+            chart.add_label(record.DateTime.strftime("%d %b %Y"))
             chart.add_datapoint(
                 "Heat generated heating (Wh)", record.HeatGenerated_Heating
             )
@@ -470,7 +470,7 @@ def main(args):
             if cop_heating > 6 or cop_water > 6:
                 # Erronious data point.
                 continue
-            chart.add_label(record.DateTime.strftime("%d %m %Y"))
+            chart.add_label(record.DateTime.strftime("%d %b %Y"))
             chart.add_datapoint("COP heating", cop_heating)
             chart.add_datapoint("COP hot water", cop_water)
     charts_all_time.append(chart)
@@ -483,7 +483,7 @@ def main(args):
         if record.DhwTankTemperature != None:
             daily_dhw[record.DateTime.date()].append(record.DhwTankTemperature)
     for date in sorted(daily_dhw):
-        chart.add_label(date.strftime("%d %m %Y"))
+        chart.add_label(date.strftime("%d %b %Y"))
         chart.add_datapoint("DHW", sum(daily_dhw[date]) / len(daily_dhw[date]))
     charts_all_time.append(chart)
 
@@ -498,7 +498,7 @@ def main(args):
             daily_internal[record.DateTime.date()].append(record.CurrentRoomTemperature)
             daily_external[record.DateTime.date()].append(record.OutdoorTemperature)
     for date in sorted(daily_internal):
-        chart.add_label(date.strftime("%d %m %Y"))
+        chart.add_label(date.strftime("%d %b %Y"))
         chart.add_datapoint(
             "Internal", sum(daily_internal[date]) / len(daily_internal[date])
         )
