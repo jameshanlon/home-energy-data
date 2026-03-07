@@ -6,7 +6,9 @@ import {
 import {
   Box,
   Container,
+  Link,
   Paper,
+  Stack,
   Table,
   TableBody,
   TableCell,
@@ -164,8 +166,15 @@ export default function App() {
         Home Energy Data
       </Typography>
       <StatsTable annualStats={data.annual_stats} totalStats={data.total_stats} />
+      <Stack direction="row" spacing={3} sx={{ mb: 4 }}>
+        {data.chart_groups.map((group) => (
+          <Link key={group.name} href={`#${group.name}`} underline="hover">
+            {group.name}
+          </Link>
+        ))}
+      </Stack>
       {data.chart_groups.map((group) => (
-        <Box key={group.name} sx={{ mb: 4 }}>
+        <Box key={group.name} id={group.name} sx={{ mb: 4 }}>
           <Typography variant="h5" gutterBottom sx={{ mt: 4 }}>
             {group.name}
           </Typography>

@@ -683,8 +683,8 @@ def main(args):
     # Generate JSON
     generate_json(
         {
-            "All time": charts_all_time,
             "Weekly data per year": charts_per_year,
+            "All time": charts_all_time,
         },
         annual_stats,
         s,
