@@ -408,6 +408,29 @@ def main(args):
             chart.add_datapoint(str(year), weekly_consumed[year][week])
     charts.append(chart)
 
+    # Prepare weekly total heat energy generated per year.
+    weekly_generated = {}
+    for year in YEARS:
+        weekly_generated[year] = [0] * 53
+        for record in dataset.iter_year(year):
+            if (
+                record.HeatGenerated_Heating != None
+                and record.HeatGenerated_DomesticHotWater != None
+            ):
+                total = (
+                    record.HeatGenerated_Heating + record.HeatGenerated_DomesticHotWater
+                )
+                weekly_generated[year][record.DateTime.isocalendar().week] += total
+
+    chart = LineChart("Weekly total heat energy generated (Wh) by year")
+    for week in range(1, 53):
+        chart.add_label(str(week))
+    for year in YEARS:
+        chart.add_series(str(year))
+        for week in range(1, 53):
+            chart.add_datapoint(str(year), weekly_generated[year][week])
+    charts.append(chart)
+
     # Prepare weekly COP
     chart = LineChart("Weekly averaged COP")
     for week in range(1, 53):
