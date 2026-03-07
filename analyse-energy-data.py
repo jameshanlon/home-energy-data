@@ -504,6 +504,61 @@ def main(args):
         )
     charts.append(chart)
 
+    # Prepare weekly averaged DHW temperature per year.
+    weekly_dhw = {}
+    for year in YEARS:
+        weekly_dhw[year] = defaultdict(list)
+        for record in dataset.iter_year(year):
+            if record.DhwTankTemperature != None:
+                weekly_dhw[year][record.DateTime.isocalendar().week].append(
+                    record.DhwTankTemperature
+                )
+
+    chart = LineChart("Weekly averaged hot water temperature (C) by year")
+    for week in range(1, 53):
+        chart.add_label(str(week))
+    for year in YEARS:
+        chart.add_series(str(year))
+        for week in range(1, 53):
+            vals = weekly_dhw[year][week]
+            chart.add_datapoint(str(year), sum(vals) / len(vals) if vals else 0)
+    charts.append(chart)
+
+    # Prepare weekly averaged ambient temperature per year.
+    weekly_internal = {}
+    weekly_external = {}
+    for year in YEARS:
+        weekly_internal[year] = defaultdict(list)
+        weekly_external[year] = defaultdict(list)
+        for record in dataset.iter_year(year):
+            if (
+                record.OutdoorTemperature != None
+                and record.CurrentRoomTemperature != None
+            ):
+                week = record.DateTime.isocalendar().week
+                weekly_internal[year][week].append(record.CurrentRoomTemperature)
+                weekly_external[year][week].append(record.OutdoorTemperature)
+
+    chart = LineChart("Weekly averaged internal temperature (C) by year")
+    for week in range(1, 53):
+        chart.add_label(str(week))
+    for year in YEARS:
+        chart.add_series(str(year))
+        for week in range(1, 53):
+            vals = weekly_internal[year][week]
+            chart.add_datapoint(str(year), sum(vals) / len(vals) if vals else 0)
+    charts.append(chart)
+
+    chart = LineChart("Weekly averaged external temperature (C) by year")
+    for week in range(1, 53):
+        chart.add_label(str(week))
+    for year in YEARS:
+        chart.add_series(str(year))
+        for week in range(1, 53):
+            vals = weekly_external[year][week]
+            chart.add_datapoint(str(year), sum(vals) / len(vals) if vals else 0)
+    charts.append(chart)
+
     # Prepare chart of heat output vs COP
     chart = ScatterChart("Heat output vs COP averaged weekly")
     for year in YEARS:
