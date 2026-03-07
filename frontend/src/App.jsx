@@ -82,7 +82,13 @@ function StatsTable({ annualStats, totalStats }) {
   );
 }
 
+function chartSlug(name) {
+  return name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+}
+
 function ChartCard({ chart }) {
+  const id = chartSlug(chart.name);
+
   if (chart.type === "line") {
     const seriesNames = Object.keys(chart.series);
     const series = seriesNames.map((name) => ({
@@ -92,7 +98,7 @@ function ChartCard({ chart }) {
     }));
 
     return (
-      <Paper sx={{ p: 2, mb: 4 }}>
+      <Paper id={id} sx={{ p: 2, mb: 4 }}>
         <Typography variant="h6" gutterBottom>
           {chart.name}
         </Typography>
@@ -114,7 +120,7 @@ function ChartCard({ chart }) {
     }));
 
     return (
-      <Paper sx={{ p: 2, mb: 4 }}>
+      <Paper id={id} sx={{ p: 2, mb: 4 }}>
         <Typography variant="h6" gutterBottom>
           {chart.name}
         </Typography>
@@ -179,6 +185,13 @@ export default function App() {
           <Typography variant="h5" gutterBottom sx={{ mt: 4 }}>
             {group.name}
           </Typography>
+          <Stack direction="row" spacing={3} flexWrap="wrap" sx={{ mb: 3 }}>
+            {group.charts.map((chart) => (
+              <Link key={chart.name} href={`#${chartSlug(chart.name)}`} underline="hover" sx={{ fontSize: "0.875rem" }}>
+                {chart.name}
+              </Link>
+            ))}
+          </Stack>
           {group.charts.map((chart) => (
             <ChartCard key={chart.name} chart={chart} />
           ))}
