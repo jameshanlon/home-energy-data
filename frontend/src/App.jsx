@@ -163,7 +163,7 @@ export default function App() {
 
   return (
     <Container maxWidth="xl" sx={{ mt: 4, mb: 8 }}>
-      <Typography variant="h4" gutterBottom>
+      <Typography variant="h4" gutterBottom id="top">
         Home Energy Data
       </Typography>
       <StatsTable annualStats={data.annual_stats} totalStats={data.total_stats} />
@@ -182,6 +182,9 @@ export default function App() {
           {group.charts.map((chart) => (
             <ChartCard key={chart.name} chart={chart} />
           ))}
+          <Link href="#top" underline="hover" sx={{ fontSize: "0.875rem" }}>
+            Back to top
+          </Link>
         </Box>
       ))}
     </Container>
