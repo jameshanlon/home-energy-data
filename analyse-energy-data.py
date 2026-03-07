@@ -384,6 +384,30 @@ def main(args):
         # Divide sums through for average.
         weekly_cop[year] = [x / 7 for x in weekly_cop[year]]
 
+    # Prepare weekly total energy consumed per year.
+    weekly_consumed = {}
+    for year in YEARS:
+        weekly_consumed[year] = [0] * 53
+        for record in dataset.iter_year(year):
+            if (
+                record.ConsumedElectricalEnergy_Heating != None
+                and record.ConsumedElectricalEnergy_DomesticHotWater != None
+            ):
+                total = (
+                    record.ConsumedElectricalEnergy_Heating
+                    + record.ConsumedElectricalEnergy_DomesticHotWater
+                )
+                weekly_consumed[year][record.DateTime.isocalendar().week] += total
+
+    chart = LineChart("Weekly total energy consumed (Wh) by year")
+    for week in range(1, 53):
+        chart.add_label(str(week))
+    for year in YEARS:
+        chart.add_series(str(year))
+        for week in range(1, 53):
+            chart.add_datapoint(str(year), weekly_consumed[year][week])
+    charts.append(chart)
+
     # Prepare weekly COP
     chart = LineChart("Weekly averaged COP")
     for week in range(1, 53):
