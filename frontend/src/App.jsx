@@ -97,6 +97,8 @@ function ChartCard({ chart }) {
       showMark: false,
     }));
 
+    const hasDateLabels = chart.labels.length > 0 && /[a-zA-Z]/.test(chart.labels[0]);
+
     return (
       <Paper id={id} sx={{ p: 2, mb: 4 }}>
         <Typography variant="h6" gutterBottom>
@@ -106,12 +108,12 @@ function ChartCard({ chart }) {
           xAxis={[{
             scaleType: "point",
             data: chart.labels,
-            tickLabelStyle: { angle: -45, textAnchor: "end", fontSize: 11 },
+            tickLabelStyle: hasDateLabels ? { angle: -45, textAnchor: "end", fontSize: 11 } : {},
           }]}
           yAxis={chart.y_label ? [{ label: chart.y_label }] : undefined}
           series={series}
           height={350}
-          margin={{ bottom: 80 }}
+          margin={hasDateLabels ? { bottom: 80 } : undefined}
         />
       </Paper>
     );
