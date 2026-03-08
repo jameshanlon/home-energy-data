@@ -103,10 +103,15 @@ function ChartCard({ chart }) {
           {chart.name}
         </Typography>
         <LineChart
-          xAxis={[{ scaleType: "point", data: chart.labels }]}
+          xAxis={[{
+            scaleType: "point",
+            data: chart.labels,
+            tickLabelStyle: { angle: -45, textAnchor: "end", fontSize: 11 },
+          }]}
           yAxis={chart.y_label ? [{ label: chart.y_label }] : undefined}
           series={series}
           height={350}
+          margin={{ bottom: 80 }}
         />
       </Paper>
     );
