@@ -218,6 +218,8 @@ def generate_json(
             return {
                 "name": chart.name,
                 "type": "scatter",
+                "x_label": getattr(chart, "x_label", None),
+                "y_label": getattr(chart, "y_label", None),
                 "series": {
                     name: [{"x": pt[0], "y": pt[1]} for pt in points]
                     for name, points in chart.series.items()
@@ -599,6 +601,31 @@ def main(args):
                 str(year),
                 (heat, cop),
             )
+    chart.x_label = "Heat generated (Wh)"
+    chart.y_label = "COP"
+    charts_per_year.append(chart)
+
+    # Prepare chart of daily electrical energy consumed vs heat energy generated per year.
+    chart = ScatterChart("Daily electrical energy consumed vs heat energy generated")
+    for year in YEARS:
+        chart.add_series(str(year))
+        for record in dataset.iter_year(year):
+            if (
+                record.ConsumedElectricalEnergy_Heating != None
+                and record.ConsumedElectricalEnergy_DomesticHotWater != None
+                and record.HeatGenerated_Heating != None
+                and record.HeatGenerated_DomesticHotWater != None
+            ):
+                total_consumed = (
+                    record.ConsumedElectricalEnergy_Heating
+                    + record.ConsumedElectricalEnergy_DomesticHotWater
+                )
+                total_generated = (
+                    record.HeatGenerated_Heating + record.HeatGenerated_DomesticHotWater
+                )
+                chart.add_datapoint(str(year), (total_consumed, total_generated))
+    chart.x_label = "Electrical energy consumed (Wh)"
+    chart.y_label = "Heat energy generated (Wh)"
     charts_per_year.append(chart)
 
     # Prepare year stats.

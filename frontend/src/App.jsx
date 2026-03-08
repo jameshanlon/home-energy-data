@@ -134,8 +134,8 @@ function ChartCard({ chart }) {
         <ScatterChart
           series={series}
           height={350}
-          xAxis={[{ label: "Heat generated (Wh)" }]}
-          yAxis={[{ label: "COP" }]}
+          xAxis={chart.x_label ? [{ label: chart.x_label }] : undefined}
+          yAxis={chart.y_label ? [{ label: chart.y_label }] : undefined}
         />
       </Paper>
     );
