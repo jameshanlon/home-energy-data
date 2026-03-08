@@ -133,7 +133,7 @@ function ChartCard({ chart }) {
         </Typography>
         <ScatterChart
           series={series}
-          height={350}
+          height={chart.height ?? 350}
           xAxis={chart.x_label ? [{ label: chart.x_label }] : undefined}
           yAxis={chart.y_label ? [{ label: chart.y_label }] : undefined}
         />

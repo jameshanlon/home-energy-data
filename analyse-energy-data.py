@@ -220,6 +220,7 @@ def generate_json(
                 "type": "scatter",
                 "x_label": getattr(chart, "x_label", None),
                 "y_label": getattr(chart, "y_label", None),
+                "height": getattr(chart, "height", None),
                 "series": {
                     name: [{"x": pt[0], "y": pt[1]} for pt in points]
                     for name, points in chart.series.items()
@@ -626,6 +627,7 @@ def main(args):
                 chart.add_datapoint(str(year), (total_consumed, total_generated))
     chart.x_label = "Electrical energy consumed (Wh)"
     chart.y_label = "Heat energy generated (Wh)"
+    chart.height = 700
     charts_per_year.append(chart)
 
     # Prepare year stats.
