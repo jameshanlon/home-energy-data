@@ -168,7 +168,7 @@ function ChartCard({ chart }) {
           yAxis={chart.y_label ? [{ label: chart.y_label }] : undefined}
           series={series}
           height={350}
-          margin={hasDateLabels ? { bottom: 80 } : undefined}
+          margin={{ left: 80, ...(hasDateLabels ? { bottom: 80 } : {}) }}
         />
       </Paper>
     );
@@ -191,6 +191,7 @@ function ChartCard({ chart }) {
           height={chart.height ?? 350}
           xAxis={chart.x_label ? [{ label: chart.x_label }] : undefined}
           yAxis={chart.y_label ? [{ label: chart.y_label }] : undefined}
+          margin={{ left: 80 }}
         >
           {chart.cop_reference_lines && <CopReferenceLines />}
         </ScatterChart>
