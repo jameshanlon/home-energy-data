@@ -221,6 +221,7 @@ def generate_json(
                 "x_label": getattr(chart, "x_label", None),
                 "y_label": getattr(chart, "y_label", None),
                 "height": getattr(chart, "height", None),
+                "cop_reference_lines": getattr(chart, "cop_reference_lines", False),
                 "series": {
                     name: [{"x": pt[0], "y": pt[1]} for pt in points]
                     for name, points in chart.series.items()
@@ -628,6 +629,7 @@ def main(args):
     chart.x_label = "Electrical energy consumed (Wh)"
     chart.y_label = "Heat energy generated (Wh)"
     chart.height = 700
+    chart.cop_reference_lines = True
     charts_per_year.append(chart)
 
     # Prepare year stats.

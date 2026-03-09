@@ -2,6 +2,9 @@ import { useEffect, useState } from "react";
 import {
   LineChart,
   ScatterChart,
+  useDrawingArea,
+  useXScale,
+  useYScale,
 } from "@mui/x-charts";
 import {
   Box,
@@ -82,6 +85,58 @@ function StatsTable({ annualStats, totalStats }) {
   );
 }
 
+function CopReferenceLines() {
+  const xScale = useXScale();
+  const yScale = useYScale();
+
+  if (!xScale || !yScale) return null;
+
+  const [xMin, xMax] = xScale.domain();
+  const [, yMax] = yScale.domain();
+
+  return (
+    <>
+      {[1, 2, 3, 4, 5].map((cop) => {
+        const xStart = Math.max(xMin, 0);
+        const yStart = cop * xStart;
+        if (yStart > yMax) return null;
+
+        // Clip line to chart bounds: exit through top or right edge
+        const xEnd = Math.min(xMax, yMax / cop);
+        const yEnd = cop * xEnd;
+
+        const px1 = xScale(xStart);
+        const py1 = yScale(yStart);
+        const px2 = xScale(xEnd);
+        const py2 = yScale(yEnd);
+
+        // Place label at the line's endpoint, offset to avoid overlap
+        const atTop = xEnd < xMax;
+
+        return (
+          <g key={cop}>
+            <line
+              x1={px1} y1={py1} x2={px2} y2={py2}
+              stroke="#aaa"
+              strokeWidth={1}
+              strokeDasharray="5 3"
+            />
+            <text
+              x={px2} y={py2}
+              fontSize={11} fill="#888"
+              dx={atTop ? 4 : -4}
+              dy={atTop ? -4 : 12}
+              textAnchor={atTop ? "start" : "end"}
+            >
+              COP {cop}
+            </text>
+          </g>
+        );
+      })}
+    </>
+  );
+}
+
 function chartSlug(name) {
   return name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
 }
@@ -136,7 +191,9 @@ function ChartCard({ chart }) {
           height={chart.height ?? 350}
           xAxis={chart.x_label ? [{ label: chart.x_label }] : undefined}
           yAxis={chart.y_label ? [{ label: chart.y_label }] : undefined}
-        />
+        >
+          {chart.cop_reference_lines && <CopReferenceLines />}
+        </ScatterChart>
       </Paper>
     );
   }
