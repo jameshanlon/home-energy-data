@@ -211,6 +211,7 @@ def generate_json(
                 "name": chart.name,
                 "type": "line",
                 "y_label": getattr(chart, "y_label", None),
+                "left_margin": getattr(chart, "left_margin", None),
                 "labels": chart.labels,
                 "series": chart.series,
             }
@@ -416,7 +417,24 @@ def main(args):
         chart.add_series(str(year))
         for week in range(1, 53):
             chart.add_datapoint(str(year), weekly_consumed[year].get(week))
-    chart.y_label = "Wh"
+    charts_per_year.append(chart)
+
+    # Prepare cumulative weekly total energy consumed per year.
+    chart = LineChart("Cumulative weekly total energy consumed (Wh) by year")
+    for week in range(1, 53):
+        chart.add_label(str(week))
+    for year in YEARS:
+        chart.add_series(str(year))
+        weeks_with_data = sorted(weekly_consumed[year].keys())
+        first_week = weeks_with_data[0] if weeks_with_data else None
+        last_week = weeks_with_data[-1] if weeks_with_data else None
+        cumulative = 0
+        for week in range(1, 53):
+            cumulative += weekly_consumed[year].get(week, 0)
+            if first_week is not None and first_week <= week <= last_week:
+                chart.add_datapoint(str(year), cumulative)
+            else:
+                chart.add_datapoint(str(year), None)
     charts_per_year.append(chart)
 
     # Prepare weekly total heat energy generated per year.

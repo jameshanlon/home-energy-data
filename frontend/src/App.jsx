@@ -11,7 +11,6 @@ import {
   Container,
   Link,
   Paper,
-  Stack,
   Table,
   TableBody,
   TableCell,
@@ -141,6 +140,9 @@ function chartSlug(name) {
   return name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
 }
 
+const compactNumber = new Intl.NumberFormat("en", { notation: "compact", maximumFractionDigits: 1 });
+const formatYTick = (v) => (typeof v === "number" ? compactNumber.format(v) : v);
+
 function ChartCard({ chart }) {
   const id = chartSlug(chart.name);
 
@@ -165,10 +167,10 @@ function ChartCard({ chart }) {
             data: chart.labels,
             tickLabelStyle: hasDateLabels ? { angle: -45, textAnchor: "end", fontSize: 11 } : {},
           }]}
-          yAxis={chart.y_label ? [{ label: chart.y_label }] : undefined}
+          yAxis={[{ label: chart.y_label ?? undefined, valueFormatter: formatYTick }]}
           series={series}
           height={350}
-          margin={{ left: 80, ...(hasDateLabels ? { bottom: 80 } : {}) }}
+          margin={{ left: chart.left_margin ?? (chart.y_label ? 80 : 50), ...(hasDateLabels ? { bottom: 80 } : {}) }}
         />
       </Paper>
     );
@@ -238,31 +240,55 @@ export default function App() {
         Home Energy Data
       </Typography>
       <StatsTable annualStats={data.annual_stats} totalStats={data.total_stats} />
-      <Stack direction="row" spacing={3} sx={{ mb: 4 }}>
+      <Box
+        component="ul"
+        sx={{
+          mb: 4,
+          pl: 3,
+          typography: "body1",
+          lineHeight: 1.8,
+        }}
+      >
         {data.chart_groups.map((group) => (
-          <Link key={group.name} href={`#${group.name}`} underline="hover">
-            {group.name}
-          </Link>
+          <li key={group.name}>
+            <Link href={`#${group.name}`} underline="hover">
+              {group.name}
+            </Link>
+          </li>
         ))}
-      </Stack>
+      </Box>
       {data.chart_groups.map((group) => (
         <Box key={group.name} id={group.name} sx={{ mb: 4 }}>
           <Typography variant="h5" gutterBottom sx={{ mt: 4 }}>
             {group.name}
           </Typography>
-          <Stack direction="row" spacing={3} flexWrap="wrap" sx={{ mb: 3 }}>
+          <Box
+            component="ul"
+            sx={{
+              mb: 3,
+              pl: 3,
+              typography: "body1",
+              lineHeight: 1.8,
+            }}
+          >
             {group.charts.map((chart) => (
-              <Link key={chart.name} href={`#${chartSlug(chart.name)}`} underline="hover" sx={{ fontSize: "0.875rem" }}>
-                {chart.name}
-              </Link>
+              <li key={chart.name}>
+                <Link href={`#${chartSlug(chart.name)}`} underline="hover">
+                  {chart.name}
+                </Link>
+              </li>
             ))}
-          </Stack>
+          </Box>
           {group.charts.map((chart) => (
-            <ChartCard key={chart.name} chart={chart} />
+            <Box key={chart.name}>
+              <ChartCard chart={chart} />
+              <Box sx={{ mb: 4 }}>
+                <Link href="#top" underline="hover" sx={{ typography: "body1" }}>
+                  Back to top
+                </Link>
+              </Box>
+            </Box>
           ))}
-          <Link href="#top" underline="hover" sx={{ fontSize: "0.875rem" }}>
-            Back to top
-          </Link>
         </Box>
       ))}
     </Container>
