@@ -24,7 +24,7 @@ from typing import Iterator, TypeAlias
 from enum import Enum, auto
 
 
-YEARS = [2023, 2024, 2025]
+YEARS = [2023, 2024, 2025, 2026]
 
 
 class Record:
