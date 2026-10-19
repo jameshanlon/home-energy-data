@@ -38,25 +38,32 @@ Code is formatted with `black` (enforced via pre-commit). The frontend build req
 
 ## Architecture
 
+**Shared module** (`vaillant.py`): the single source of truth for the CSV export layout — dialect, column names, filename patterns, per-sensor plausible ranges, the COP definition and the hourly-to-daily averaging. Both Python scripts read the exports through it.
+
 **Python layer** (`analyse-energy-data.py`): reads CSVs, computes stats and COP, writes `output/data.json`.
+
+**Renovation charts** (`renovation-charts.py`): renders the before/after comparison PNGs for the 2025 renovation into `charts/`.
 
 **Frontend** (`frontend/`): Vite+React app that fetches `data.json` and renders stats tables and charts using `@mui/x-charts`. Built output lands in `output/`.
 
 **Data flow:**
-1. `read_csv()` reads the semicolon-delimited CSVs into a `Dataset` (a `defaultdict` keyed by `datetime`).
+1. `read_csv()` reads the semicolon-delimited CSVs into a `Dataset` (a `defaultdict` keyed by `datetime`) via `vaillant.read_records()`.
 2. Each row populates a `Record` object via `setattr`, using the column header as the attribute name (colons replaced with underscores).
-3. The 2023 energy CSV has 6 repeated column blocks — handled by multiplying the headers list by `column_repeats = 6`.
-4. After loading, consumed and generated Wh values are optionally scaled via `--scale-consumed` / `--scale-generated`.
-5. `main()` builds `LineChart` and `ScatterChart` objects from the dataset, then passes them to `generate_json()`.
-6. `generate_json()` serialises the charts and stats to `output/data.json`.
-7. The React app (`frontend/src/App.jsx`) fetches `data.json` on mount and renders the dashboard.
+3. `vaillant.read_records()` takes each row's columns from the file's own header, so the 2023 energy CSV's 6 repeated column blocks need no special handling.
+4. `vaillant.parse_value()` drops blank cells and readings outside the sensor's plausible range (the outdoor sensor logs occasional -40 C spikes).
+5. After loading, consumed and generated Wh values are optionally scaled via `--scale-consumed` / `--scale-generated`.
+6. `main()` builds `LineChart` and `ScatterChart` objects from the dataset, then passes them to `generate_json()`.
+7. `generate_json()` serialises the charts and stats to `output/data.json`.
+8. The React app (`frontend/src/App.jsx`) fetches `data.json` on mount and renders the dashboard.
 
 **Data ordering note:** `iter_records()` sorts by `DateTime` before yielding. This is necessary because the `defaultdict` insertion order is not chronological — energy CSVs are read first (inserting their timestamps), so hourly timestamps from DHW/system/zone CSVs that don't overlap get appended later.
 
-**Temperature chart aggregation:** DHW and ambient temperature CSVs contain hourly data (~18k points over the full date range). These are aggregated to daily averages before serialisation to keep the charts readable.
+**Temperature chart aggregation:** DHW and ambient temperature CSVs contain hourly data (~18k points over the full date range). These are aggregated to daily averages via `vaillant.daily_means()` before serialisation to keep the charts readable.
+
+**Erroneous COP readings:** the heat pump occasionally logs an absurd COP. Individual readings go through `vaillant.reading_cop()`, which clips to `vaillant.MAX_COP` rather than dropping the day, so its heat output still counts towards the energy totals. Aggregates (SCOP) use the unclipped `vaillant.cop()` ratio.
 
 **Key Python classes:**
-- `Record` — one data point per datetime; fields map directly to CSV column names with `:` → `_`.
+- `Record` — one data point per datetime; fields are derived from `vaillant.RECORD_ATTRS`, mapping CSV column names with `:` → `_`.
 - `Dataset` — holds all records, provides `iter_records(date_from, date_to)`, `iter_year(year)`, and `total*` aggregation helpers.
 - `LineChart` / `ScatterChart` — simple data containers; `get_symbol()` produces a JS-safe identifier from the chart name.
 - `Stats` — populated per-year (and once for the full range) with totals and SCOP values; serialised to JSON.
@@ -72,7 +79,7 @@ frontend/
     └── App.jsx         # fetches data.json, renders StatsTable + ChartCard components
 ```
 
-**Adding a new year:** Add the year to `YEARS` (line 27) and place the four CSV files in `data/<year>/` following the existing naming convention.
+**Adding a new year:** Add the year to `YEARS` and place the four CSV files in `data/<year>/` following the filename patterns in `vaillant.py`. No column lists need editing — the readers follow each file's header. A column the exports have never carried before must still be added to `vaillant.py`, which `Dataset.add` will tell you about by name.
 
 **Data files** (`data/<year>/`):
 - `energy_data_<year>_ArothermPlus_*.csv` — consumed/generated electrical and heat energy (Wh)

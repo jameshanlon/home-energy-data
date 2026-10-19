@@ -10,6 +10,7 @@ from pathlib import Path
 import pytest
 
 import aed
+import vaillant
 
 DATA_DIR = Path(__file__).parent.parent / "data"
 YEARS = aed.YEARS  # [2023, 2024, 2025]
@@ -29,44 +30,9 @@ def real_dataset():
     """Load all real CSV files exactly as main() does."""
     ds = aed.Dataset()
     for year in YEARS:
-        column_repeats = 6 if year == 2023 else 1
-        aed.read_csv(
-            ds,
-            str(
-                DATA_DIR
-                / f"{year}/energy_data_{year}_ArothermPlus_21222500100211330001005519N3.csv"
-            ),
-            ["DateTime"]
-            + [
-                "ConsumedElectricalEnergy:Heating",
-                "ConsumedElectricalEnergy:DomesticHotWater",
-                "HeatGenerated:Heating",
-                "HeatGenerated:DomesticHotWater",
-                "EarnedEnvironmentEnergy:Heating",
-                "EarnedEnvironmentEnergy:DomesticHotWater",
-            ]
-            * column_repeats,
-        )
-        aed.read_csv(
-            ds,
-            str(DATA_DIR / f"{year}/domestic_hot_water_255_data_{year}.csv"),
-            ["DateTime", "DhwTankTemperature"],
-        )
-        aed.read_csv(
-            ds,
-            str(DATA_DIR / f"{year}/system_data_{year}.csv"),
-            ["DateTime", "OutdoorTemperature"],
-        )
-        aed.read_csv(
-            ds,
-            str(DATA_DIR / f"{year}/zone_0_data_{year}.csv"),
-            [
-                "DateTime",
-                "ManualModeSetpointHeating",
-                "RoomTemperatureSetpoint",
-                "CurrentRoomTemperature",
-            ],
-        )
+        aed.read_csv(ds, vaillant.energy_csv(DATA_DIR, year))
+        for pattern in vaillant.SENSOR_CSVS:
+            aed.read_csv(ds, vaillant.sensor_csv(DATA_DIR, year, pattern))
     return ds
 
 

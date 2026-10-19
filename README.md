@@ -82,7 +82,7 @@ and the following charts:
 
 ## Adding a new year
 
-1. Add the year to `YEARS` in `analyse-energy-data.py` (line 27).
+1. Add the year to `YEARS` in `analyse-energy-data.py`.
 2. Place the four CSV files in `data/<year>/` following the existing naming convention.
 3. Run `make all`.
 

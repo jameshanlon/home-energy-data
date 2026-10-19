@@ -3,7 +3,6 @@ import json
 import pytest
 import aed
 
-
 # ---------------------------------------------------------------------------
 # format_kwh
 # ---------------------------------------------------------------------------
@@ -361,15 +360,7 @@ def test_read_csv_populates_dataset(tmp_path):
         "2024-03-15 12:00:00;100.0;50.0\n"
     )
     ds = aed.Dataset()
-    aed.read_csv(
-        ds,
-        str(csv_file),
-        [
-            "DateTime",
-            "ConsumedElectricalEnergy:Heating",
-            "ConsumedElectricalEnergy:DomesticHotWater",
-        ],
-    )
+    aed.read_csv(ds, csv_file)
     dt = datetime.datetime(2024, 3, 15, 12, 0, 0)
     assert ds.records[dt].DateTime == dt
     assert ds.records[dt].ConsumedElectricalEnergy_Heating == 100.0
@@ -384,19 +375,33 @@ def test_read_csv_skips_comment_rows(tmp_path):
         "2024-01-01 00:00:00;5.0\n"
     )
     ds = aed.Dataset()
-    aed.read_csv(ds, str(csv_file), ["DateTime", "OutdoorTemperature"])
+    aed.read_csv(ds, csv_file)
     assert len(ds.records) == 1
 
 
 def test_read_csv_skips_empty_values(tmp_path):
     csv_file = tmp_path / "test.csv"
     csv_file.write_text(
-        "DateTime;OutdoorTemperature;DhwTankTemperature\n" "2024-01-01 00:00:00;;45.0\n"
+        "DateTime;OutdoorTemperature;DhwTankTemperature\n2024-01-01 00:00:00;;45.0\n"
     )
     ds = aed.Dataset()
-    aed.read_csv(
-        ds, str(csv_file), ["DateTime", "OutdoorTemperature", "DhwTankTemperature"]
-    )
+    aed.read_csv(ds, csv_file)
     dt = datetime.datetime(2024, 1, 1)
     assert ds.records[dt].OutdoorTemperature is None
     assert ds.records[dt].DhwTankTemperature == 45.0
+
+
+def test_read_csv_drops_implausible_sensor_readings(tmp_path):
+    csv_file = tmp_path / "test.csv"
+    csv_file.write_text("DateTime;OutdoorTemperature\n2024-01-01 00:00:00;-40.0\n")
+    ds = aed.Dataset()
+    aed.read_csv(ds, csv_file)
+    assert ds.records[datetime.datetime(2024, 1, 1)].OutdoorTemperature is None
+
+
+def test_read_csv_names_an_unknown_column(tmp_path):
+    csv_file = tmp_path / "test.csv"
+    csv_file.write_text("DateTime;SomeNewColumn\n2024-01-01 00:00:00;5.0\n")
+    ds = aed.Dataset()
+    with pytest.raises(ValueError, match="SomeNewColumn"):
+        aed.read_csv(ds, csv_file)

@@ -1,3 +1,4 @@
+matplotlib
 pre-commit
 pytest
 rich

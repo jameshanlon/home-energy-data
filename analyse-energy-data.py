@@ -11,36 +11,30 @@ __version__ = "0.0.1"
 __license__ = "UNLICENSE"
 
 import argparse
-import csv
 import datetime
 import json
 import logging
 from tabulate import tabulate
 from rich import print
-from dataclasses import dataclass
 from pathlib import Path
 from collections import defaultdict
 from typing import Iterator, TypeAlias
 from enum import Enum, auto
 
+import vaillant
 
 YEARS = [2023, 2024, 2025, 2026]
+DATA_DIR = Path("data")
 
 
 class Record:
+    """
+    One data point, with an attribute per column of the Vaillant exports.
+    """
+
     def __init__(self):
-        self.DateTime: datetime.datetime = None
-        self.ConsumedElectricalEnergy_Heating: float = None
-        self.ConsumedElectricalEnergy_DomesticHotWater: float = None
-        self.HeatGenerated_Heating: float = None
-        self.HeatGenerated_DomesticHotWater: float = None
-        self.EarnedEnvironmentEnergy_Heating: float = None
-        self.EarnedEnvironmentEnergy_DomesticHotWater: float = None
-        self.DhwTankTemperature: float = None
-        self.OutdoorTemperature: float = None
-        self.ManualModeSetpointHeating: float = None
-        self.RoomTemperatureSetpoint: float = None
-        self.CurrentRoomTemperature: float = None
+        for attr in vaillant.RECORD_ATTRS:
+            setattr(self, attr, None)
 
 
 class ChartType(Enum):
@@ -107,9 +101,11 @@ class Dataset:
         if self.records[date].DateTime == None:
             self.records[date].DateTime = date
         # Set the metric.
-        attr_name = metric.replace(":", "_")
-        assert getattr(self.records[date], attr_name) == None, "overwriting data point"
-        setattr(self.records[date], attr_name, value)
+        attr = vaillant.attr_name(metric)
+        if attr not in vaillant.RECORD_ATTRS:
+            raise ValueError(f"unknown column {metric!r}; add it to vaillant.py")
+        assert getattr(self.records[date], attr) == None, "overwriting data point"
+        setattr(self.records[date], attr, value)
 
     def iter_records(
         self, date_from: datetime.datetime, date_to: datetime.datetime
@@ -145,20 +141,7 @@ class Dataset:
         )
 
     def dump(self):
-        metrics = [
-            "DateTime",
-            "ConsumedElectricalEnergy_Heating",
-            "ConsumedElectricalEnergy_DomesticHotWater",
-            "HeatGenerated_Heating",
-            "HeatGenerated_DomesticHotWater",
-            "EarnedEnvironmentEnergy_Heating",
-            "EarnedEnvironmentEnergy_DomesticHotWater",
-            "DhwTankTemperature",
-            "OutdoorTemperature",
-            "ManualModeSetpointHeating",
-            "RoomTemperatureSetpoint",
-            "CurrentRoomTemperature",
-        ]
+        metrics = vaillant.RECORD_ATTRS
         table = [[getattr(r, x) for x in metrics] for r in self.records.values()]
         print(tabulate(table, metrics, tablefmt="simple_outline"))
 
@@ -178,25 +161,30 @@ def format_kwh(kwh: float) -> str:
     return f"{kwh * 1000:.2f} Wh"
 
 
-def read_csv(dataset, filename: str, headers: list[str]) -> Dataset:
+def read_csv(dataset: Dataset, filename: Path):
     """
-    Read a CSV file with the specified columns.
+    Read an export into the dataset, taking its columns from its header.
     """
     logging.info(f"Reading {filename}")
-    with open(filename, "r") as f:
-        contents = csv.reader(f, delimiter=";", quotechar='"')
-        count = 0
-        for row in contents:
-            if row[0].startswith("#") or row[0].startswith("DateTime"):
-                continue
-            # Date
-            date = datetime.datetime.strptime(row[0], "%Y-%m-%d %H:%M:%S")
-            # Values
-            for i in range(1, len(headers)):
-                if row[i] != "":
-                    dataset.add(date, headers[i], float(row[i]))
-            count += 1
-        logging.info(f"Read {count} rows")
+    count = 0
+    for date, values in vaillant.read_records(filename):
+        for column, value in values.items():
+            dataset.add(date, column, value)
+        count += 1
+    logging.info(f"Read {count} rows")
+
+
+def set_scop(stats: Stats):
+    """
+    Fill in the seasonal COP figures from the energy totals.
+    """
+    stats.heating_scop = vaillant.cop(
+        stats.annual_heating_generated, stats.annual_heating_consumed
+    )
+    stats.water_scop = vaillant.cop(
+        stats.annual_water_generated, stats.annual_water_consumed
+    )
+    stats.scop = vaillant.cop(stats.annual_total_generated, stats.annual_total_consumed)
 
 
 def generate_json(
@@ -265,47 +253,9 @@ def main(args):
     dataset = Dataset()
 
     for year in YEARS:
-        # Oddly the colums are repeated for different parts of the dataset.
-        column_repeats = 6 if year == 2023 else 1
-        read_csv(
-            dataset,
-            f"data/{year}/energy_data_{year}_ArothermPlus_21222500100211330001005519N3.csv",
-            [
-                "DateTime",
-            ]
-            + [
-                "ConsumedElectricalEnergy:Heating",
-                "ConsumedElectricalEnergy:DomesticHotWater",
-                "HeatGenerated:Heating",
-                "HeatGenerated:DomesticHotWater",
-                "EarnedEnvironmentEnergy:Heating",
-                "EarnedEnvironmentEnergy:DomesticHotWater",
-            ]
-            * column_repeats,
-        )
-        read_csv(
-            dataset,
-            f"data/{year}/domestic_hot_water_255_data_{year}.csv",
-            [
-                "DateTime",
-                "DhwTankTemperature",
-            ],
-        )
-        read_csv(
-            dataset,
-            f"data/{year}/system_data_{year}.csv",
-            ["DateTime", "OutdoorTemperature"],
-        )
-        read_csv(
-            dataset,
-            f"data/{year}/zone_0_data_{year}.csv",
-            [
-                "DateTime",
-                "ManualModeSetpointHeating",
-                "RoomTemperatureSetpoint",
-                "CurrentRoomTemperature",
-            ],
-        )
+        read_csv(dataset, vaillant.energy_csv(DATA_DIR, year))
+        for pattern in vaillant.SENSOR_CSVS:
+            read_csv(dataset, vaillant.sensor_csv(DATA_DIR, year, pattern))
 
     # Scale the measured Wh values.
     for record in dataset.records.values():
@@ -386,12 +336,7 @@ def main(args):
                 total_generated = (
                     record.HeatGenerated_Heating + record.HeatGenerated_DomesticHotWater
                 )
-                cop_combined = (
-                    0 if total_consumed == 0 else total_generated / total_consumed
-                )
-                if cop_combined > 6:
-                    # Erronious data point.
-                    continue
+                cop_combined = vaillant.reading_cop(total_generated, total_consumed)
                 cop_sums[record.DateTime.isocalendar().week] += cop_combined
         weekly_cop[year] = {week: total / 7 for week, total in cop_sums.items()}
 
@@ -482,21 +427,14 @@ def main(args):
             and record.HeatGenerated_Heating != None
             and record.HeatGenerated_DomesticHotWater != None
         ):
-            cop_heating = (
-                0
-                if record.ConsumedElectricalEnergy_Heating == 0
-                else record.HeatGenerated_Heating
-                / record.ConsumedElectricalEnergy_Heating
+            cop_heating = vaillant.reading_cop(
+                record.HeatGenerated_Heating,
+                record.ConsumedElectricalEnergy_Heating,
             )
-            cop_water = (
-                0
-                if record.ConsumedElectricalEnergy_DomesticHotWater == 0
-                else record.HeatGenerated_DomesticHotWater
-                / record.ConsumedElectricalEnergy_DomesticHotWater
+            cop_water = vaillant.reading_cop(
+                record.HeatGenerated_DomesticHotWater,
+                record.ConsumedElectricalEnergy_DomesticHotWater,
             )
-            if cop_heating > 6 or cop_water > 6:
-                # Erronious data point.
-                continue
             chart.add_label(record.DateTime.strftime("%d %b %Y"))
             chart.add_datapoint("COP heating", cop_heating)
             chart.add_datapoint("COP hot water", cop_water)
@@ -505,13 +443,14 @@ def main(args):
     # Prepare the DHW chart data (daily average).
     chart = LineChart("Hot water temperature (C)")
     chart.add_series("DHW")
-    daily_dhw = defaultdict(list)
-    for record in dataset.iter_records(args.date_from, args.date_to):
-        if record.DhwTankTemperature != None:
-            daily_dhw[record.DateTime.date()].append(record.DhwTankTemperature)
+    daily_dhw = vaillant.daily_means(
+        (record.DateTime, record.DhwTankTemperature)
+        for record in dataset.iter_records(args.date_from, args.date_to)
+        if record.DhwTankTemperature != None
+    )
     for date in sorted(daily_dhw):
         chart.add_label(date.strftime("%d %b %Y"))
-        chart.add_datapoint("DHW", sum(daily_dhw[date]) / len(daily_dhw[date]))
+        chart.add_datapoint("DHW", daily_dhw[date])
     chart.y_label = "°C"
     charts_all_time.append(chart)
 
@@ -519,20 +458,21 @@ def main(args):
     chart = LineChart("Ambient temperature")
     chart.add_series("Internal")
     chart.add_series("External")
-    daily_internal = defaultdict(list)
-    daily_external = defaultdict(list)
-    for record in dataset.iter_records(args.date_from, args.date_to):
-        if record.OutdoorTemperature != None and record.CurrentRoomTemperature != None:
-            daily_internal[record.DateTime.date()].append(record.CurrentRoomTemperature)
-            daily_external[record.DateTime.date()].append(record.OutdoorTemperature)
+    ambient = [
+        record
+        for record in dataset.iter_records(args.date_from, args.date_to)
+        if record.OutdoorTemperature != None and record.CurrentRoomTemperature != None
+    ]
+    daily_internal = vaillant.daily_means(
+        (record.DateTime, record.CurrentRoomTemperature) for record in ambient
+    )
+    daily_external = vaillant.daily_means(
+        (record.DateTime, record.OutdoorTemperature) for record in ambient
+    )
     for date in sorted(daily_internal):
         chart.add_label(date.strftime("%d %b %Y"))
-        chart.add_datapoint(
-            "Internal", sum(daily_internal[date]) / len(daily_internal[date])
-        )
-        chart.add_datapoint(
-            "External", sum(daily_external[date]) / len(daily_external[date])
-        )
+        chart.add_datapoint("Internal", daily_internal[date])
+        chart.add_datapoint("External", daily_external[date])
     chart.y_label = "°C"
     charts_all_time.append(chart)
 
@@ -662,7 +602,6 @@ def main(args):
         # Calculate the number of days in the dataset.
         dates = [x.DateTime for x in dataset.iter_year(year)]
         diff = max(dates) - min(dates)
-        seconds_in_day = 24 * 60 * 60
         s.length_days = diff.days
 
         # Dataset totals.
@@ -682,11 +621,7 @@ def main(args):
         s.annual_total_generated = s.annual_heating_generated + s.annual_water_generated
 
         # COP
-        s.heating_scop = s.annual_heating_generated / s.annual_heating_consumed
-        s.water_scop = s.annual_water_generated / s.annual_water_consumed
-        s.scop = (s.annual_heating_generated + s.annual_water_generated) / (
-            s.annual_heating_consumed + s.annual_water_consumed
-        )
+        set_scop(s)
 
         # Done
         annual_stats.append(s)
@@ -702,7 +637,6 @@ def main(args):
     # Calculate the number of days in the dataset.
     dates = [x.DateTime for x in dataset.iter_records(args.date_from, args.date_to)]
     diff = max(dates) - min(dates)
-    seconds_in_day = 24 * 60 * 60
     s.length_days = diff.days
 
     # Dataset totals.
@@ -724,11 +658,7 @@ def main(args):
     s.annual_total_generated = s.annual_heating_generated + s.annual_water_generated
 
     # COP
-    s.heating_scop = s.annual_heating_generated / s.annual_heating_consumed
-    s.water_scop = s.annual_water_generated / s.annual_water_consumed
-    s.scop = (s.annual_heating_generated + s.annual_water_generated) / (
-        s.annual_heating_consumed + s.annual_water_consumed
-    )
+    set_scop(s)
 
     # Output path.
     output_path = Path(args.output_dir)
