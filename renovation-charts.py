@@ -25,7 +25,7 @@ import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 
-YEARS = (2024, 2025)
+YEARS = (2024, 2026)
 
 # Building work started on 10 February 2025 and the system was recommissioned
 # on 15 July.
@@ -33,10 +33,11 @@ RENOVATION_YEAR = 2025
 RENOVATION_START = datetime.date(RENOVATION_YEAR, 2, 10)
 RECOMMISSIONED = datetime.date(RENOVATION_YEAR, 7, 15)
 
-# Comparison window, as (month, day), inclusive. Starting the day after
-# recommissioning is what keeps the renovation out of every comparison below.
-WINDOW_FROM = (7, 16)
-WINDOW_TO = (12, 31)
+# Comparison window, as (month, day), inclusive: the heating season, which is
+# where the difference between the two years actually shows up. 2024 is the
+# last full season before the renovation and 2026 the first full one after it.
+WINDOW_FROM = (1, 1)
+WINDOW_TO = (4, 30)
 
 # Days using less than this much electricity for heating say more about
 # cycling and standby losses than about heating efficiency, and the kWh
@@ -378,9 +379,13 @@ def main(args):
         y: read_daily_mean(data_dir, y, vaillant.ZONE_CSV, "CurrentRoomTemperature")
         for y in YEARS
     }
-    # Only the renovation year's tank readings are plotted.
+    # The shutdown chart covers the renovation year, which is not one of the
+    # two years being compared.
     tank = read_daily_mean(
         data_dir, RENOVATION_YEAR, vaillant.DHW_CSV, "DhwTankTemperature"
+    )
+    shutdown_room = read_daily_mean(
+        data_dir, RENOVATION_YEAR, vaillant.ZONE_CSV, "CurrentRoomTemperature"
     )
 
     print_summary(energy, outdoor, room)
@@ -400,11 +405,10 @@ def main(args):
         "Mean daily outdoor temperature (°C)",
         "Heat generated for heating (kWh)",
     )
-    # Space heating in August is negligible, so it is shown for hot water only.
     grouped_bars(
         energy,
         out_dir / "renovation-monthly-heating-scop.png",
-        months=[9, 10, 11, 12],
+        months=[1, 2, 3, 4],
         suffix="Heating",
         title="Monthly heating SCOP",
         ylabel="Heating SCOP",
@@ -412,12 +416,12 @@ def main(args):
     grouped_bars(
         energy,
         out_dir / "renovation-monthly-water-scop.png",
-        months=[8, 9, 10, 11, 12],
+        months=[1, 2, 3, 4],
         suffix="DomesticHotWater",
         title="Monthly hot water SCOP",
         ylabel="Hot water SCOP",
     )
-    chart_shutdown(room[RENOVATION_YEAR], tank, out_dir / "renovation-shutdown.png")
+    chart_shutdown(shutdown_room, tank, out_dir / "renovation-shutdown.png")
 
 
 if __name__ == "__main__":
