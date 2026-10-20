@@ -393,21 +393,21 @@ def main(args):
     window = window_label()
     scatter_with_trend(
         {y: heating_cop_points(energy[y], outdoor[y]) for y in YEARS},
-        out_dir / "renovation-cop-vs-outdoor-temperature.png",
+        out_dir / "cop-vs-outdoor-temperature.png",
         f"Daily heating COP against outdoor temperature ({window})",
         "Mean daily outdoor temperature (°C)",
         "Heating COP",
     )
     scatter_with_trend(
         {y: heat_demand_points(energy[y], outdoor[y]) for y in YEARS},
-        out_dir / "renovation-heat-demand-vs-outdoor-temperature.png",
+        out_dir / "heat-demand-vs-outdoor-temperature.png",
         f"Daily heat generated against outdoor temperature ({window})",
         "Mean daily outdoor temperature (°C)",
         "Heat generated for heating (kWh)",
     )
     grouped_bars(
         energy,
-        out_dir / "renovation-monthly-heating-scop.png",
+        out_dir / "monthly-heating-scop.png",
         months=[1, 2, 3, 4],
         suffix="Heating",
         title="Monthly heating SCOP",
@@ -415,13 +415,13 @@ def main(args):
     )
     grouped_bars(
         energy,
-        out_dir / "renovation-monthly-water-scop.png",
+        out_dir / "monthly-water-scop.png",
         months=[1, 2, 3, 4],
         suffix="DomesticHotWater",
         title="Monthly hot water SCOP",
         ylabel="Hot water SCOP",
     )
-    chart_shutdown(shutdown_room, tank, out_dir / "renovation-shutdown.png")
+    chart_shutdown(shutdown_room, tank, out_dir / "shutdown.png")
 
 
 if __name__ == "__main__":
